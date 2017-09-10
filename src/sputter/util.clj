@@ -2,7 +2,7 @@
   (:import [javax.xml.bind DatatypeConverter]
            [java.util Arrays]))
 
-(defn sputter.util/hex->bytes [s]
+(defn hex->bytes [s]
   (DatatypeConverter/parseHexBinary s))
 
 (defn byte-slice [bytes i len]

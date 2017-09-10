@@ -12,7 +12,9 @@
   (let [size  (inc (- (::op/code op) op.table/push-min))
         start (inc (::pos op))
         n     (util/byte-slice bytes start size)]
-    (assoc op ::op/width size ::op/data (word/->VMWord n))))
+    (assoc op
+      ::op/width size
+      ::op/data  (word/->VMWord n))))
 
 (defn- read-op [bytes i]
   (let [op (bit-and 0xFF (get bytes i))]
@@ -35,7 +37,7 @@
     (if-let [op (state/instruction state)]
       (let [[state stack] (state/pop state (::op/stack-pop op))]
         (-> state
-            (op/operate (assoc op ::op/stack stack))
+            (op/operate (assoc op ::op/popped stack))
             (state/advance (+ 1 (::op/width op 0)))))
       (assoc state ::terminated? true))))
 
