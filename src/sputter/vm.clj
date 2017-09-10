@@ -3,8 +3,7 @@
             [sputter.op.table :as op.table]
             [sputter.util     :as util]
             [sputter.word     :as word]
-            [sputter.state    :as state] :reload)
-  (:refer-clojure :exclude [pop]))
+            [sputter.state    :as state]))
 
 (defmulti disassemble-op (fn [op bytes] (::op/mnemonic op)))
 (defmethod disassemble-op :default [op bytes] op)
