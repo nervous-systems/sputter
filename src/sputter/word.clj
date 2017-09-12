@@ -2,7 +2,7 @@
   (:import [java.math BigInteger])
   (:refer-clojure :exclude [zero?]))
 
-(defprotocol Word
+(defprotocol VMWord
   "A collection of retrieval and arithmetic functionality for EVM words."
   (signed [word]
     "A signed BigInteger interpretation of the word.")
@@ -14,15 +14,24 @@
     "Subtract two words, returning a word.")
   (zero? [word]))
 
-(defrecord VMWord [raw]
-  Word
+(defrecord Word [raw]
+  VMWord
   (signed [_]
-    (BigInteger. raw))
+    (biginteger raw))
   (unsigned [_]
     (BigInteger. 1 raw))
   (add [word x]
-    (-> (unsigned word) (.add (unsigned x)) .toByteArray VMWord.))
+    (-> (unsigned word) (.add (unsigned x)) .toByteArray Word.))
   (sub [word x]
-    (-> (unsigned word) (.subtract (unsigned x)) .toByteArray VMWord.))
+    (-> (unsigned word) (.subtract (unsigned x)) .toByteArray Word.))
   (zero? [word]
     (= 0 (unsigned word))))
+
+(defn ->Word [x]
+  (cond
+    (satisfies? VMWord x) x
+    (number?           x) (-> x biginteger .toByteArray Word.)
+    (seq               x) (Word. x)
+    :else (throw (ex-info "Can't coerce to Word" {:value x}))))
+
+(def zero (->Word 0))

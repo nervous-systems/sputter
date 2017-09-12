@@ -21,16 +21,16 @@
  {::add word/add
   ::sub word/sub})
 
-(defmethod operate :sputter.op.type/dup [state op]
+(defmethod operate :sputter.op.group/dup [state op]
   (-> (reduce state/push state (::popped op))
       (state/push (last (::popped op)))))
 
-(defmethod operate :sputter.op.type/swap [state op]
+(defmethod operate :sputter.op.group/swap [state op]
   (let [[h & t] (::popped op)
         state   (state/push state h)]
     (reduce state/push state t)))
 
-(defmethod operate :sputter.op.type/push [state op]
+(defmethod operate :sputter.op.group/push [state op]
   (state/push state (::data op)))
 
 (defmethod operate ::jumpdest [state op]
@@ -40,6 +40,5 @@
   (state/position state (first (::popped op))))
 
 (defmethod operate ::jumpi [state op]
-  (let [[pos v] (::popped op)
-        pos     (word/unsigned pos)]
+  (let [[pos v] (::popped op)]
     (cond-> state (not (word/zero? v)) (state/position pos))))

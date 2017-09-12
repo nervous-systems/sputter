@@ -8,36 +8,36 @@
 (defmulti disassemble-op (fn [op bytes] (::op/mnemonic op)))
 (defmethod disassemble-op :default [op bytes] op)
 
-(defmethod disassemble-op :sputter.op.type/push [op bytes]
+(defmethod disassemble-op :sputter.op.group/push [op bytes]
   (let [size  (inc (- (::op/code op) op.table/push-min))
         start (inc (::pos op))
         n     (util/byte-slice bytes start size)]
     (assoc op
       ::op/width size
-      ::op/data  (word/->VMWord n))))
+      ::op/data  (word/->Word n))))
 
 (defn- read-op [bytes i]
-  (let [op (bit-and 0xFF (get bytes i))]
+  (let [op (-> (get bytes i) (bit-and 0xFF))]
     (-> op op.table/ops (assoc ::pos i) (disassemble-op bytes))))
 
 (defn disassemble [bytes]
   (let [bytes (cond-> bytes (string? bytes) util/hex->bytes)]
     (loop [i    0
-           code (sorted-map)]
+           prog (sorted-map)]
       (if (<= (count bytes) i)
-        code
+        prog
         (let [op   (read-op bytes i)
-              code (assoc code i op)
+              prog (assoc prog i op)
               i    (+ i 1 (::op/width op 0))]
-          (recur i code))))))
+          (recur i prog))))))
 
 (defn step [state]
   (if (::terminated? state)
     state
     (if-let [op (state/instruction state)]
-      (let [[state stack] (state/pop state (::op/stack-pop op))]
+      (let [[state popped] (state/pop state (::op/stack-pop op))]
         (-> state
-            (op/operate (assoc op ::op/popped stack))
+            (op/operate (assoc op ::op/popped popped))
             (state/advance (+ 1 (::op/width op 0)))))
       (assoc state ::terminated? true))))
 
