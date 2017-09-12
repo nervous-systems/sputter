@@ -23,12 +23,12 @@
    0x13 :sputter.op/byte 0x20 :sputter.op/sha3 0x35 :sputter.op/calldataload})
 
 (def ^:private by-kind
-  {:sputter.op.type/stack stack
-   :sputter.op.type/push  push
-   :sputter.op.type/dup   dup
-   :sputter.op.type/swap  swap
-   :sputter.op.type/jump  {0x56 :sputter.op/jump 0x57 :sputter.op/jumpi}
-   :sputter.op.type/misc  {0x5b :sputter.op/jumpdest}})
+  {:sputter.op.group/stack stack
+   :sputter.op.group/push  push
+   :sputter.op.group/dup   dup
+   :sputter.op.group/swap  swap
+   :sputter.op.group/jump  {0x56 :sputter.op/jump 0x57 :sputter.op/jumpi}
+   :sputter.op.group/misc  {0x5b :sputter.op/jumpdest}})
 
 (doseq [[parent kids] by-kind]
   (doseq [kid (vals kids)]

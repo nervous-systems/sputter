@@ -8,7 +8,7 @@
 
 (defn register-op [mnemonic f]
   (defmethod operate mnemonic [state op]
-    (state/push state (apply f (::stack op)))))
+    (state/push state (apply f (::popped op)))))
 
 (defn register-ops [mnemonic->f]
   (doseq [[mnemonic f] mnemonic->f]
@@ -21,25 +21,24 @@
  {::add word/add
   ::sub word/sub})
 
-(defmethod operate :sputter.op.type/dup [state op]
-  (-> (reduce state/push state (::stack op))
-      (state/push (last (::stack op)))))
+(defmethod operate :sputter.op.group/dup [state op]
+  (-> (reduce state/push state (::popped op))
+      (state/push (last (::popped op)))))
 
-(defmethod operate :sputter.op.type/swap [state op]
-  (let [[h & t] (::stack op)
+(defmethod operate :sputter.op.group/swap [state op]
+  (let [[h & t] (::popped op)
         state   (state/push state h)]
     (reduce state/push state t)))
 
-(defmethod operate :sputter.op.type/push [state op]
+(defmethod operate :sputter.op.group/push [state op]
   (state/push state (::data op)))
 
 (defmethod operate ::jumpdest [state op]
   state)
 
 (defmethod operate ::jump [state op]
-  (state/position state (first (::stack op))))
+  (state/position state (first (::popped op))))
 
 (defmethod operate ::jumpi [state op]
-  (let [[pos v] (::stack op)
-        pos     (word/unsigned pos)]
+  (let [[pos v] (::popped op)]
     (cond-> state (not (word/zero? v)) (state/position pos))))
