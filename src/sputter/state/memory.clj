@@ -10,25 +10,27 @@
   (store-byte [mem pos b])
   (load       [mem pos]))
 
-(defn- apply-table [mem pos f & args]
+(defn- update* [mem pos f & args]
   (apply update-in mem [:table pos] (fnil f word/zero) args))
 
 (defrecord Memory [table]
   VMMemory
   (store [mem pos word]
     (let [slot    (quot pos word/size)
-          overlap (rem  pos word/size)
-          excess  (- word/size overlap)]
+          in-slot (- word/size (rem pos word/size))]
       (-> mem
-          (apply-table slot word/join word excess)
-          (cond-> (not (zero? overlap))
-            (apply-table (inc slot) #(word/join word % excess))))))
+          (update* slot word/join word in-slot)
+          (cond-> (< in-slot word/size)
+            (update* (inc slot) #(word/join word % in-slot))))))
   (store-byte [mem pos b]
-    (let [slot     (quot pos word/size)
-          word-pos (rem  pos word/size)]
-      (apply-table mem slot word/insert b word-pos)))
+    (let [slot (quot pos word/size)]
+      (update* mem slot word/insert b (rem pos word/size))))
   (load [mem pos]
-    (table (quot pos word/size) word/zero)))
+    (let [slot (quot pos word/size)]
+      (word/join
+       (table slot       word/zero)
+       (table (inc slot) word/zero)
+       (rem pos word/size)))))
 
 (def memory? (partial satisfies? VMMemory))
 
