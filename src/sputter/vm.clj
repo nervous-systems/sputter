@@ -2,6 +2,7 @@
   (:require [sputter.op       :as op]
             [sputter.op.table :as op.table]
             [sputter.util     :as util]
+            [sputter.gas      :as gas]
             [sputter.word     :as word]
             [sputter.state    :as state] :reload))
 
@@ -28,18 +29,35 @@
               i    (+ i (::op/width op))]
           (recur i prog))))))
 
-(defn step [state]
-  (if (::terminated? state)
-    state
-    (if-let [op (state/instruction state)]
-      (let [[state popped] (state/pop state (::op/stack-pop op))]
-        (-> state
-            (op/operate (assoc op ::op/popped popped))
-            (state/advance (::op/width op))))
-      (assoc state ::terminated? true))))
+(defn- terminated? [state]
+  (or (not (state/instruction state))
+      (:sputter/error state)
+      (::terminated?  state)))
 
-(defn execute [state]
+(defn- operate [state op]
+  (let [[state popped] (state/pop state (::op/stack-pop op))
+        op             (assoc op ::op/popped popped)
+        v-cost         (gas/variable-cost op state)
+        state          (state/deduct-gas state v-cost)]
+    (if (:sputter/error state)
+      state
+      (-> state
+          (op/operate    op)
+          (state/advance (::op/width op))))))
+
+(defn step [state & [{:keys [gas-model]
+                      :or   {gas-model gas/yellow-paper}}]]
+  (if (terminated? state)
+    (assoc state ::terminated? true)
+    (let [op      (state/instruction state)
+          f-cost  (gas/fixed-cost (::op/mnemonic op))
+          state   (state/deduct-gas state f-cost)]
+      (if (:sputter/error state)
+        state
+        (operate state op)))))
+
+(defn execute [state & [opts]]
   (->> state
-       (iterate step)
-       (drop-while (complement ::terminated?))
+       (iterate #(step % opts))
+       (drop-while (complement terminated?))
        first))

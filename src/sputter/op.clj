@@ -2,8 +2,7 @@
   (:require [pandect.algo.sha3-256 :as sha]
             [sputter.op.table      :as op.table]
             [sputter.word          :as word]
-            [sputter.state         :as state]
-            [sputter.state.memory  :as mem]))
+            [sputter.state         :as state]))
 
 (defmulti operate (fn [state op] (::mnemonic op)))
 
@@ -21,18 +20,6 @@
 (register-ops
  {::add word/add
   ::sub word/sub})
-
-(defmethod operate ::mstore [state op]
-  (let [[addr v] (::popped op)]
-    (update state :memory mem/store addr v)))
-
-;; (defmethod operate ::return [state op]
-;;   (let [mem (:memory state)]
-;;     (state/return state (for []))))
-
-(defmethod operate ::mload [state op]
-  (let [mem (:memory state)]
-    (state/push state (apply mem/load mem (::popped op)))))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
@@ -54,4 +41,4 @@
 
 (defmethod operate ::jumpi [state op]
   (let [[pos v] (::popped op)]
-    (cond-> state (not (zero? v)) (state/position pos))))
+    (cond-> state (not (word/zero? v)) (state/position pos))))

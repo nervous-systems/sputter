@@ -1,7 +1,8 @@
 (ns sputter.state
   "Immutable EVM execution state."
-  (:require [sputter.word :as word]
-            [sputter.state.memory :as mem])
+  (:require [sputter.word         :as word]
+            [sputter.state.memory :as mem]
+            [sputter.gas          :as gas])
   (:refer-clojure :exclude [pop]))
 
 (defprotocol VMState
@@ -13,17 +14,25 @@
 
   (instruction [state]
     "Return the instruction at pointer.")
+  (deduct-gas [state n]
+    "Deduct `n` from the remaining gas tally, or return a state with a
+     `:sputter/error` of `:gas-insufficient`, if doing so results in a
+     negative number.")
   (push [state value]
     "Push `value` onto the stack, returning the state.")
   (pop [state num]
     "Pop up to `num` values from the stack, returning `[state values]`"))
 
-(defrecord State [program pointer stack memory]
+(defrecord State [program pointer stack memory gas]
   VMState
   (advance [state offset]
     (update state :pointer word/add (word/->Word offset)))
   (position [state pos]
     (assoc state :pointer (word/->Word pos)))
+  (deduct-gas [state n]
+    (if (< (- gas n) 0)
+      ::gas-insufficient
+      (update state :gas - n)))
   (instruction [state]
     (program pointer))
   (push [state value]
@@ -35,7 +44,9 @@
 (defn map->State
   "Return a state record, optionally initialized with values from `defaults`"
   [& [defaults]]
-  (State. (:program defaults {})
-          (:pointer defaults word/zero)
-          (:stack   defaults '())
-          (mem/->Memory (:memory defaults {}))))
+  (let [mem (mem/->Memory (:memory defaults {}))]
+    (State. (:program  defaults {})
+            (:pointer  defaults word/zero)
+            (:stack    defaults '())
+            mem
+            (:gas      defaults 0))))

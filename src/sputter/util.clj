@@ -40,3 +40,13 @@
         (let [~m-sym @m-atom#]
           (reset! m-atom# (assoc! ~m-sym ~key-expr ~val-expr))))
       (persistent! @m-atom#))))
+
+(defn error? [v]
+  (and (keyword? v) (= (namespace v) "sputter.error")))
+
+(defn guard [f state & args]
+  (let [v (apply f state args)]
+    (when (error? v)
+      (throw (ex-info "State error" {:sputter/state state
+                                     :sputter/error v})))
+    v))

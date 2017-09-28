@@ -1,7 +1,8 @@
 (ns sputter.word
   (:require [sputter.util            :as util]
             [sputter.util.biginteger :as b])
-  (:import [java.math BigInteger]))
+  (:import [java.math BigInteger])
+  (:refer-clojure :exclude [zero?]))
 
 (def size      32)
 (def max-value (-> b/one (b/<< (* size 8)) (b/- b/one)))
@@ -14,10 +15,15 @@
   (sub [word x]
     "Subtract two words, returning a word.")
   (join [word other n]
-    "Replace `n` least-significant _bytes_ in `word` with `n` most-significant
-     bytes from `other, returning `word`.")
+    "Replace `n` right-most _bytes_ in `word` with `n` left-most
+     bytes from `other`, returning `word`.")
   (insert [word b pos]
-    "Insert single-byte word `b` at `pos` in `word`."))
+    "Insert single-byte word `b` at `pos` in `word`.
+     A `pos` of zero points to the left-most byte.")
+  (zero? [word])
+  (as-biginteger [word]
+    "Return a [[java.math.BigInteger]] representation of this
+    word's data."))
 
 (extend-type BigInteger
   VMWord
@@ -30,12 +36,17 @@
   (join [word other n]
     (b/or (truncate (b/<< word (* 8 n)))
           (b/>> other (* 8 (- size n)))))
+  (zero? [word]
+    (clojure.core/zero? word))
   (insert [word b pos]
-    (let [prefix (b/<< (b/>> word (* 8 (- size pos))) 8)
-          suffix (b/and word (b/mask (* 8 (- size pos 1))))]
-      (b/or (b/<< (b/or prefix b)
-                  (* 8 (- size pos 1)))
-            suffix))))
+    (let [prefix (b/and  word (b/<< (b/mask (* 8 pos)) 8))
+          suffix (b/mask word (* 8 (- size pos 1)))]
+      (-> prefix
+          (b/or b)
+          (b/<< (* 8 (- size pos 1)))
+          (b/or suffix))))
+  (as-biginteger [word]
+    word))
 
 (def word? (partial satisfies? VMWord))
 
@@ -46,4 +57,4 @@
     (string? x) (BigInteger. 1 (util/hex->bytes x))
     :else       (BigInteger. 1 x)))
 
-(def zero  (->Word 0))
+(def zero (->Word 0))
