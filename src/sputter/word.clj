@@ -1,37 +1,60 @@
 (ns sputter.word
+  (:require [sputter.util            :as util]
+            [sputter.util.biginteger :as b])
   (:import [java.math BigInteger])
   (:refer-clojure :exclude [zero?]))
 
+(def size      32)
+(def max-value (-> b/one (b/<< (* size 8)) (b/- b/one)))
+
 (defprotocol VMWord
-  "A collection of retrieval and arithmetic functionality for EVM words."
-  (signed [word]
-    "A signed BigInteger interpretation of the word.")
-  (unsigned [word]
-    "An unsigned BigInteger interpretation of the word.")
+  (truncate [word]
+    "Contain within maximum word size.")
   (add [word x]
     "Add two words, returning a word.")
   (sub [word x]
     "Subtract two words, returning a word.")
-  (zero? [word]))
+  (join [word other n]
+    "Replace `n` right-most _bytes_ in `word` with `n` left-most
+     bytes from `other`, returning `word`.")
+  (insert [word b pos]
+    "Insert single-byte word `b` at `pos` in `word`.
+     A `pos` of zero points to the left-most byte.")
+  (zero? [word])
+  (as-biginteger [word]
+    "Return a [[java.math.BigInteger]] representation of this
+    word's data."))
 
-(defrecord Word [raw]
+(extend-type BigInteger
   VMWord
-  (signed [_]
-    (biginteger raw))
-  (unsigned [_]
-    (BigInteger. 1 raw))
+  (truncate [word]
+    (b/and word max-value))
   (add [word x]
-    (-> (unsigned word) (.add (unsigned x)) .toByteArray Word.))
+    (-> word (b/+ x) truncate))
   (sub [word x]
-    (-> (unsigned word) (.subtract (unsigned x)) .toByteArray Word.))
+    (-> word (b/- x) truncate))
+  (join [word other n]
+    (b/or (truncate (b/<< word (* 8 n)))
+          (b/>> other (* 8 (- size n)))))
   (zero? [word]
-    (= 0 (unsigned word))))
+    (clojure.core/zero? word))
+  (insert [word b pos]
+    (let [prefix (b/and  word (b/<< (b/mask (* 8 pos)) 8))
+          suffix (b/mask word (* 8 (- size pos 1)))]
+      (-> prefix
+          (b/or b)
+          (b/<< (* 8 (- size pos 1)))
+          (b/or suffix))))
+  (as-biginteger [word]
+    word))
+
+(def word? (partial satisfies? VMWord))
 
 (defn ->Word [x]
   (cond
-    (satisfies? VMWord x) x
-    (number?           x) (-> x biginteger .toByteArray Word.)
-    (seq               x) (Word. x)
-    :else (throw (ex-info "Can't coerce to Word" {:value x}))))
+    (word?   x) x
+    (number? x) (biginteger x)
+    (string? x) (BigInteger. 1 (util/hex->bytes x))
+    :else       (BigInteger. 1 x)))
 
 (def zero (->Word 0))

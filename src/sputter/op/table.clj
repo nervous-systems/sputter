@@ -1,65 +1,55 @@
-(ns sputter.op.table)
+(ns sputter.op.table
+  (:require [sputter.util :refer [map-values]]))
 
-(defn- op-range [lo hi op-name]
+(defn- op-variants [lo hi op-name & [ks]]
   (into (sorted-map)
     (for [i (range (- hi lo))
-          :let [k (keyword "sputter.op" (str (name op-name) (inc i)))]]
-      [(+ lo i) k])))
+          :let [mnemonic (keyword "sputter.op" (name op-name))]]
+      [(+ lo i) (merge {:sputter.op/variant   (inc i)
+                        :sputter.op/mnemonic  mnemonic
+                        :sputter.op/stack-pop (inc i)
+                        :sputter.op/width     1} ks)])))
 
-(def push-min 0x60)
-(def dup-min  0x80)
-(def swap-min 0x90)
+(defn- ->simple-op [mnemonic stack-pop & [ks]]
+  (merge {:sputter.op/mnemonic  mnemonic
+          :sputter.op/stack-pop stack-pop
+          :sputter.op/width     1} ks))
 
-(def ^:private push  (op-range push-min dup-min  :push))
-(def ^:private dup   (op-range dup-min  swap-min :dup))
-(def ^:private swap  (op-range swap-min 0xa0     :swap))
-(def ^:private stack
-  {0x01 :sputter.op/add  0x02 :sputter.op/mul  0x03 :sputter.op/sub
-   0x04 :sputter.op/div  0x05 :sputter.op/sdiv 0x06 :sputter.op/mod
-   0x07 :sputter.op/smod 0x08 :sputter.op/exp  0x09 :sputter.op/neg
-   0x0a :sputter.op/lt   0x0b :sputter.op/gt   0x0c :sputter.op/slt
-   0x0d :sputter.op/sgt  0x0e :sputter.op/eq   0x0f :sputter.op/not
-   0x10 :sputter.op/and  0x11 :sputter.op/or   0x12 :sputter.op/xor
-   0x13 :sputter.op/byte 0x20 :sputter.op/sha3 0x35 :sputter.op/calldataload})
+(def ^:private stack->ops
+  {0 {0x5b :sputter.op/jumpdest}
 
-(def ^:private by-kind
-  {:sputter.op.group/stack stack
-   :sputter.op.group/push  push
-   :sputter.op.group/dup   dup
-   :sputter.op.group/swap  swap
-   :sputter.op.group/jump  {0x56 :sputter.op/jump 0x57 :sputter.op/jumpi}
-   :sputter.op.group/misc  {0x5b :sputter.op/jumpdest}})
+   1 {0x20 :sputter.op/sha3
+      0x56 :sputter.op/jump
+      0x51 :sputter.op/mload}
 
-(doseq [[parent kids] by-kind]
-  (doseq [kid (vals kids)]
-    (derive kid parent)))
+   2 {0x01 :sputter.op/add  0x02 :sputter.op/mul  0x03 :sputter.op/sub
+      0x04 :sputter.op/div  0x05 :sputter.op/sdiv 0x06 :sputter.op/mod
+      0x07 :sputter.op/smod 0x08 :sputter.op/exp  0x09 :sputter.op/neg
+      0x0a :sputter.op/lt   0x0b :sputter.op/gt   0x0c :sputter.op/slt
+      0x0d :sputter.op/sgt  0x0e :sputter.op/eq   0x10 :sputter.op/and
+      0x11 :sputter.op/or   0x12 :sputter.op/xor  0x57 :sputter.op/jumpi
+      0x13 :sputter.op/byte 0x35 :sputter.op/calldataload
+      0x52 :sputter.op/mstore 0xf2 :sputter.op/return
+      0x55 :sputter.op/sstore}})
 
-(def mnemonic->signature
-  (merge
-   (zipmap (vals stack) (repeat [2 1]))
-   (zipmap (vals push)  (repeat [0 1]))
-   (zipmap (vals dup)   (map vector (rest (range)) (rest (rest (range)))))
-   (zipmap (vals swap)  (map vector (rest (rest (range))) (rest (rest (range)))))
-   {:sputter.op/not      [1 1]
-    :sputter.op/jump     [1 0]
-    :sputter.op/jumpi    [2 0]
-    :sputter.op/jumpdest [0 0]}))
+(def simple-ops
+  (apply
+   merge
+   (for [[stack-pop ops] stack->ops]
+     (map-values #(->simple-op % stack-pop) ops))))
 
+(def pushes
+  (->> (op-variants 0x60 0x80 :push {:sputter.op/stack-pop 0})
+       (map-values
+        (fn [op]
+          (assoc op ::sputter.op/width (inc (::sputter.op/variant op)))))))
+
+(def dups  (op-variants 0x80 0x90 :dup))
+(def swaps (op-variants 0x90 0xa0 :swap))
 (def ops
-  (into {}
-    (mapcat
-     (fn [[kind ops]]
-       (for [[code op] ops :let [[in out] (mnemonic->signature op)]]
-         [code {:sputter.op/mnemonic   op
-                :sputter.op/code       code
-                :sputter.op/stack-pop  in
-                :sputter.op/stack-push out}])))
-    by-kind))
-
-(def by-mnemonic
-  (into {}
-    (for [[code op] ops]
-      [(:sputter.op/mnemonic op) op])))
+  (merge
+   pushes dups swaps simple-ops
+   {0x53 (->simple-op :sputter.op/mstore 2 {:sputter.op/variant 8})}))
 
 ;; (def ops
 ;;   {0x30 :sputter.op/address      0x31 :sputter.op/balance      0x32 :sputter.op/origin
