@@ -15,21 +15,21 @@
    :per-memory-word    3})
 
 (def ^:private by-price
-  {::zero     #{::op/stop ::op/suicide ::op/return}
-   ::jumpdest #{::op/jumpdest}
-   ::base
+  {:zero     #{::op/stop ::op/suicide ::op/return}
+   :jumpdest #{::op/jumpdest}
+   :base
    #{::op/address    ::op/origin   ::op/caller   ::op/callvalue ::op/calldatasize
      ::op/codesize   ::op/gasprice ::op/coinbase ::op/timestamp ::op/number
      ::op/difficulty ::op/gaslimit ::op/pop      ::op/pc        ::op/msize
-     ::op/gas        ::op/push}
-   ::verylow
+     ::op/gas}
+   :verylow
    #{::op/add   ::op/sub    ::op/not  ::op/lt   ::op/gt  ::op/slt  ::op/sgt
      ::op/eq    ::op/iszero ::op/and  ::op/or   ::op/xor ::op/byte ::op/calldataload
      ::op/mload ::op/mstore ::op/push ::op/dup  ::op/swap}
-   ::low  #{::op/mul ::op/div ::op/sdiv ::op/mod ::op/smod ::op/signextend}
-   ::mid  #{::op/addmod ::op/mulmod ::op/jump}
-   ::high #{::op/jumpi}
-   ::ext  #{::op/balance ::op/extcodesize :op/blockhash}})
+   :low  #{::op/mul ::op/div ::op/sdiv ::op/mod ::op/smod ::op/signextend}
+   :mid  #{::op/addmod ::op/mulmod ::op/jump}
+   :high #{::op/jumpi}
+   :ext  #{::op/balance ::op/extcodesize :op/blockhash}})
 
 (def ^{:doc "Map of symbolic operation names to fixed prices"} by-op
   (apply merge (for [[k vs] by-price] (zipmap vs (repeat (constants k))))))

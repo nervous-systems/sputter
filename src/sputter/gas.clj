@@ -15,27 +15,30 @@
       (quot (* word/size 16))
       (+ (* words per-word))))
 
-(defmethod op->variable-cost ::op/mstore [op constants]
+(derive ::op/mstore ::mem-extend)
+(derive ::op/mload  ::mem-extend)
+
+(defmethod op->variable-cost ::mem-extend [op constants]
   (let [width      (::op/variant op word/size)
         [addr]     (::op/popped  op)
-        prev-words (-> op :sputter/state  :memory mem/words)
+        prev-words (-> op :sputter/state :memory mem/words)
         curr-words (Math/ceil (/ (+ addr width) word/size))]
     (max 0 (- (mem-fee curr-words (:per-memory-word constants))
               (mem-fee prev-words (:per-memory-word constants))))))
 
 (defprotocol GasModel
-  (fixed-cost [mnemonic]
+  (fixed-cost [_ mnemonic]
     "Return the up-front cost of executing the op w/ the given `mnemonic`.")
-  (variable-cost [op state]
+  (variable-cost [_ op state]
     "Return the cost of executing `op` against `state`.
 
     Does not include any fixed-cost component."))
 
 (defrecord EthGasModel [constants by-op]
   GasModel
-  (fixed-cost [mnemonic]
+  (fixed-cost [_ mnemonic]
     (by-op mnemonic))
-  (variable-cost [op state]
+  (variable-cost [_ op state]
     (op->variable-cost
      (assoc op :sputter/state state)
      constants)))

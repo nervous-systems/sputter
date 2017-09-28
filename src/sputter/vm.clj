@@ -34,12 +34,12 @@
       (:sputter/error state)
       (::terminated?  state)))
 
-(defn- operate [state op]
+(defn- operate [state op gas-model]
   (let [[state popped] (state/pop state (::op/stack-pop op))
         op             (assoc op ::op/popped popped)
-        v-cost         (gas/variable-cost op state)
+        v-cost         (gas/variable-cost gas-model op state)
         state          (state/deduct-gas state v-cost)]
-    (if (:sputter/error state)
+    (if (terminated? state)
       state
       (-> state
           (op/operate    op)
@@ -50,11 +50,10 @@
   (if (terminated? state)
     (assoc state ::terminated? true)
     (let [op      (state/instruction state)
-          f-cost  (gas/fixed-cost (::op/mnemonic op))
+          f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))
           state   (state/deduct-gas state f-cost)]
-      (if (:sputter/error state)
-        state
-        (operate state op)))))
+      (cond-> state
+        (not (terminated? state)) (operate op gas-model)))))
 
 (defn execute [state & [opts]]
   (->> state

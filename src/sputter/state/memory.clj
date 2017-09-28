@@ -44,7 +44,7 @@
     (let [slot      (quot pos word/size)
           from-next (rem pos word/size)
           extent'   (cond-> slot (not (zero? from-next)) inc)]
-      [(update mem :extent max extent')
+      [(update mem :extent max (inc extent'))
        (word/join
         (table slot word/zero)
         (table (inc slot) word/zero)
@@ -55,7 +55,7 @@
           end      (quot (+ pos n) word/size)
           [w & ws] (for [i (range start (inc end))]
                      (word/as-biginteger (table i word/zero)))]
-      [(update mem :extent max end)
+      [(update mem :extent max (inc end))
        (-> (reduce
             (fn [acc word]
               (b/or (b/<< acc (* 8 word/size)) word))
@@ -68,7 +68,8 @@
         (update 1 b/to-byte-array n)))
 
   (words [mem]
-    (-> table last key (max extent) inc)))
+    (let [k (some-> table last key)]
+      (max extent (inc (or k -1))))))
 
 (def memory? (partial satisfies? VMMemory))
 

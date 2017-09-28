@@ -1,8 +1,7 @@
 (ns sputter.state
   "Immutable EVM execution state."
   (:require [sputter.word         :as word]
-            [sputter.state.memory :as mem]
-            [sputter.gas          :as gas])
+            [sputter.state.memory :as mem])
   (:refer-clojure :exclude [pop]))
 
 (defprotocol VMState
@@ -30,8 +29,8 @@
   (position [state pos]
     (assoc state :pointer (word/->Word pos)))
   (deduct-gas [state n]
-    (if (< (- gas n) 0)
-      ::gas-insufficient
+    (if (neg? (- gas n))
+      (assoc  state :sputter/error ::gas-insufficient)
       (update state :gas - n)))
   (instruction [state]
     (program pointer))

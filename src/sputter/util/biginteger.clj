@@ -25,9 +25,8 @@
   (let [bs       (.toByteArray x)
         n        (int (Math/ceil (/ (.bitLength x) 8)))
         res      (byte-array (clojure.core/or pad-to-bytes n))
-        dest-pos  (if pad-to-bytes
-                    (clojure.core/- pad-to-bytes n)
-                    0)]
-    (System/arraycopy
-     bs (clojure.core/- (count bs) n) res dest-pos n)
+        dest-pos (if pad-to-bytes
+                   (clojure.core/- pad-to-bytes n)
+                   0)]
+    (System/arraycopy bs (clojure.core/- (count bs) n) res dest-pos n)
     res))
