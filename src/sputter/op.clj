@@ -3,6 +3,7 @@
             [sputter.op.table      :as op.table]
             [sputter.word          :as word]
             [sputter.state.memory  :as mem]
+            [sputter.util.memory   :as util.mem]
             [sputter.state         :as state]
             [sputter.state.storage :as storage]))
 
@@ -34,7 +35,7 @@
 
 (defmethod operate ::mstore [state op]
   (let [remember (case (::variant op)
-                   8   mem/remember-byte
+                   8   util.mem/remember-byte
                    nil mem/remember)]
     (apply remember state (::popped op))))
 
