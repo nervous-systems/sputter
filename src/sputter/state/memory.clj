@@ -53,38 +53,34 @@
          (word/insert word b)
          (remember mem slot))))
 
-(defn- recall-bigintegers [mem positions]
+(defn- reduce-words [f mem val positions]
   (reduce
    (fn [[mem acc] pos]
      (let [[mem word] (recall mem pos)]
-       [mem (conj acc (word/as-biginteger word))]))
-   [mem []]
+       [mem (f acc word)]))
+   [mem val]
    positions))
 
 (defn- word-boundary? [x]
   (zero? (rem x word/size)))
 
-(defn- combine-bigintegers [ws]
-  (reduce
-   (fn [acc w]
-     (b/or (b/<< acc (* 8 word/size)) w))
-   word/zero
-   ws))
+(defn- boundaried-range [start end]
+  (range (* word/size (quot start word/size))
+         (* word/size (Math/ceil (/ end word/size)))
+         word/size))
 
 (defn recall-biginteger [mem pos n]
-  (let [start    (quot pos word/size)
-        end      (Math/ceil (/ (+ pos n) word/size))
-        [mem ws] (recall-bigintegers
-                  mem
-                  (range (* word/size start)
-                         (* word/size end)
-                         word/size))]
-    [mem
-     (-> ws
-         (update 0 b/mask (* 8 (inv-offset pos)))
-         combine-bigintegers
-         (cond-> (not (word-boundary? (+ pos n)))
-           (b/>> (* 8 (inv-offset (+ pos n))))))]))
+  (let [end     (+ pos n)
+        [mem w] (reduce-words
+                 (fn [acc word]
+                   (b/or (b/<< acc (* 8 word/size)) word))
+                 mem
+                 word/zero
+                 (boundaried-range pos end))]
+    [mem (-> w
+             (cond-> (not (word-boundary? end))
+               (b/>> (* 8 (inv-offset end))))
+             (b/and (b/mask (* 8 n))))]))
 
 (defn recall-bytes [mem pos n]
   (-> (recall-biginteger mem pos n)
