@@ -3,7 +3,8 @@
             [sputter.op.table      :as op.table]
             [sputter.word          :as word]
             [sputter.state.memory  :as mem]
-            [sputter.state         :as state]))
+            [sputter.state         :as state]
+            [sputter.state.storage :as storage]))
 
 (defmulti operate (fn [state op] (::mnemonic op)))
 
@@ -27,17 +28,27 @@
       (state/push (last (::popped op)))))
 
 (defmethod operate ::mload [state op]
-  (let [mem        (:memory state)
-        addr       (first (::popped op))
-        [mem word] (mem/load-word mem addr)]
-    (-> state
-        (state/push word)
-        (assoc :memory mem))))
+  (let [[pos]        (::popped op)
+        [state word] (mem/recall state pos)]
+    (state/push state word)))
+
+(defmethod operate ::mstore [state op]
+  (let [remember (case (::variant op)
+                   8   mem/remember-byte
+                   nil mem/remember)]
+    (apply remember state (::popped op))))
 
 (defmethod operate ::swap [state op]
   (let [[h & t] (::popped op)
         state   (state/push state h)]
     (reduce state/push state t)))
+
+(defmethod operate ::sstore [state op]
+  (apply storage/store state :recipient (::popped op)))
+
+(defmethod operate ::sload [state op]
+  (let [[pos] (::popped op)]
+    (storage/retrieve state :recipient pos)))
 
 (defmethod operate ::push [state op]
   (state/push state (::data op)))

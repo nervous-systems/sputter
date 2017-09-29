@@ -3,20 +3,16 @@
             [sputter.util.biginteger :as b]))
 
 (defprotocol VMMemory
-  (store [mem pos word]
+  (remember [mem pos word]
     "Store `word` starting at byte position `pos` in `mem`.
      Returns `mem`.")
-  (store-byte [mem pos b]
-    "Store a single byte word `b` at position `pos` in `mem`.
-     Returns `mem`.")
-  (load-word [mem pos]
+  (recall [mem pos]
     "Retrieve the word starting at byte position `pos` in `mem`.
 
      Returns a vector of `[mem word]`.")
-  (load-biginteger [mem pos n])
-  (load-bytes [mem pos n])
-  (words [mem]
-    "Return the number of words in `mem`."))
+  (remembered [mem]
+    "Return the number of words in `mem`, or the number of words
+     implied by out-of-bounds accesses of `mem`, whichever is greater."))
 
 (defn- update* [mem pos f & args]
   (apply
@@ -28,7 +24,7 @@
 
 (defrecord Memory [table extent]
   VMMemory
-  (store [mem pos word]
+  (remember [mem pos word]
     (let [slot    (quot pos word/size)
           in-slot (inv-offset pos)]
       (-> mem
@@ -36,11 +32,7 @@
           (cond-> (< in-slot word/size)
             (update* (inc slot) #(word/join word % in-slot))))))
 
-  (store-byte [mem pos b]
-    (let [slot (quot pos word/size)]
-      (update* mem slot word/insert b (rem pos word/size))))
-
-  (load-word [mem pos]
+  (recall [mem pos]
     (let [slot      (quot pos word/size)
           from-next (rem pos word/size)
           extent'   (cond-> slot (not (zero? from-next)) inc)]
@@ -50,26 +42,53 @@
         (table (inc slot) word/zero)
         from-next)]))
 
-  (load-biginteger [mem pos n]
-    (let [start    (quot pos word/size)
-          end      (quot (+ pos n) word/size)
-          [w & ws] (for [i (range start (inc end))]
-                     (word/as-biginteger (table i word/zero)))]
-      [(update mem :extent max (inc end))
-       (-> (reduce
-            (fn [acc word]
-              (b/or (b/<< acc (* 8 word/size)) word))
-            (b/mask w (* 8 (inv-offset pos)))
-            ws)
-           (b/>> (* 8 (inv-offset (+ pos n)))))]))
-
-  (load-bytes [mem pos n]
-    (-> (load-biginteger mem pos n)
-        (update 1 b/to-byte-array n)))
-
-  (words [mem]
+  (remembered [mem]
     (let [k (some-> table last key)]
       (max extent (inc (or k -1))))))
+
+(defn remember-byte [mem pos b]
+  (let [slot       (* word/size (quot pos word/size))
+        [mem word] (recall mem slot)]
+    (->> (rem pos word/size)
+         (word/insert word b)
+         (remember mem slot))))
+
+(defn- recall-bigintegers [mem positions]
+  (reduce
+   (fn [[mem acc] pos]
+     (let [[mem word] (recall mem pos)]
+       [mem (conj acc (word/as-biginteger word))]))
+   [mem []]
+   positions))
+
+(defn- word-boundary? [x]
+  (zero? (rem x word/size)))
+
+(defn- combine-bigintegers [ws]
+  (reduce
+   (fn [acc w]
+     (b/or (b/<< acc (* 8 word/size)) w))
+   word/zero
+   ws))
+
+(defn recall-biginteger [mem pos n]
+  (let [start    (quot pos word/size)
+        end      (Math/ceil (/ (+ pos n) word/size))
+        [mem ws] (recall-bigintegers
+                  mem
+                  (range (* word/size start)
+                         (* word/size end)
+                         word/size))]
+    [mem
+     (-> ws
+         (update 0 b/mask (* 8 (inv-offset pos)))
+         combine-bigintegers
+         (cond-> (not (word-boundary? (+ pos n)))
+           (b/>> (* 8 (inv-offset (+ pos n))))))]))
+
+(defn recall-bytes [mem pos n]
+  (-> (recall-biginteger mem pos n)
+      (update 1 b/to-byte-array n)))
 
 (def memory? (partial satisfies? VMMemory))
 
