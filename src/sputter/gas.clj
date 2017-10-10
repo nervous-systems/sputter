@@ -1,8 +1,9 @@
 (ns sputter.gas
-  (:require [sputter.gas.yellow   :as gas.yellow]
-            [sputter.word         :as word]
-            [sputter.state.memory :as mem]
-            [sputter.op           :as op]))
+  (:require [sputter.gas.yellow    :as gas.yellow]
+            [sputter.word          :as word]
+            [sputter.state.memory  :as mem]
+            [sputter.state.storage :as storage]
+            [sputter.op            :as op]))
 
 (defmulti ^:private op->variable-cost
   (fn [op constants] (::op/mnemonic op)))
@@ -21,10 +22,20 @@
 (defmethod op->variable-cost ::mem-extend [op constants]
   (let [width      (::op/variant op word/size)
         [addr]     (::op/popped  op)
-        prev-words (-> op :sputter/state :memory mem/words)
+        prev-words (-> op :sputter/state mem/remembered)
         curr-words (Math/ceil (/ (+ addr width) word/size))]
     (max 0 (- (mem-fee curr-words (:per-memory-word constants))
               (mem-fee prev-words (:per-memory-word constants))))))
+
+(defmethod op->variable-cost ::op/sstore [op constants]
+  (let [[cur pos] (::op/popped op)
+        prev      (-> op :sputter/state (storage/retrieve :recipient pos))]
+    (cond
+      (and (word/zero? prev)
+           (not (word/zero? cur)))  (:sset constants)
+      (and (word/zero? cur)
+           (not (word/zero? prev))) (:sreset constants)  ;; fixme refund
+      :else                         (:sreset constants))))
 
 (defprotocol GasModel
   (fixed-cost [_ mnemonic]
