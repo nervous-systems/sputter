@@ -16,10 +16,10 @@
 (defmacro or  [x & xs] (if (not-empty xs) `(.or       ~x (or  ~@xs)) x))
 (defmacro and [x & xs] (if (not-empty xs) `(.and      ~x (and ~@xs)) x))
 
-(defmacro mask
-  ([m] `(-> ~one (<< ~m) (- ~one)))
+(defn mask
+  ([m] (-> one (<< m) (- one)))
   ([n m]
-   `(and ~n (mask ~m))))
+   (and n (mask m))))
 
 (defn to-byte-array [x & [pad-to-bytes]]
   (let [bs       (.toByteArray x)
