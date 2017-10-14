@@ -36,24 +36,27 @@
       (::terminated?  state)))
 
 (defn- operate [state op gas-model]
-  (let [[state popped] (state/pop state (::op/stack-pop op))]
-    (if (< (count popped) (::op/stack-pop op))
+  (let [pop-n          (::op/stack-pop op)
+        [state popped] (state/pop state pop-n)]
+    (if (< (count popped) pop-n)
       (assoc state :sputter/error :stack-underflow)
       (let [op     (assoc op ::op/popped popped)
-            v-cost (gas/variable-cost gas-model op state)
-            state  (state/deduct-gas state v-cost)]
+            v-cost (gas/variable-cost gas-model op state)]
         (s/state-> state
-          (op/operate    op)
-          (state/advance (::op/width op)))))))
+          (state/deduct-gas v-cost)
+          (op/operate       op)
+          (state/advance    (::op/width op)))))))
 
-(defn step [state & [{:keys [gas-model]
-                      :or   {gas-model gas/yellow-paper}}]]
+(defn step
+  [state & [{:keys [gas-model]
+             :or   {gas-model gas/yellow-paper}}]]
   (if (terminated? state)
     (assoc state ::terminated? true)
     (let [op      (state/instruction state)
           f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))]
-      (s/state-> (state/deduct-gas state f-cost)
-        (operate op gas-model)))))
+      (s/state-> state
+        (state/deduct-gas f-cost)
+        (operate          op gas-model)))))
 
 (defn execute [state & [opts]]
   (->> state

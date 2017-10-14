@@ -1,0 +1,14 @@
+machine:
+  java:
+    version: oraclejdk8
+
+dependencies:
+  pre:
+    - lein deps
+  cache_directories:
+    - ~/.m2
+    - ~/.lein
+
+test:
+  override:
+    - lein test
