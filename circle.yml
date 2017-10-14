@@ -5,6 +5,7 @@ machine:
 dependencies:
   pre:
     - lein deps
+    - git submodule update --init --recursive
   cache_directories:
     - ~/.m2
     - ~/.lein
