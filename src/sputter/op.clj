@@ -70,6 +70,4 @@
 
 (defmethod operate ::jumpi [state op]
   (let [[pos v] (::popped op)]
-    (if (word/zero? v)
-      state
-      (jump* state pos))))
+    (cond-> state (not (word/zero? v)) (jump* pos))))

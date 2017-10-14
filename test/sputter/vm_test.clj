@@ -2,10 +2,10 @@
   (:require [clojure.test :refer [deftest]]
             [sputter.test.util :as test.util] :reload))
 
-(deftest arithmetic-add
+(deftest add
   (test.util/run-vm-tests #"^add\d+$"))
 
-(deftest arithmetic-sub
+(deftest sub
   (test.util/run-vm-tests #"^sub\d+$"))
 
 (deftest dup
@@ -19,3 +19,6 @@
 
 (deftest mload
   (test.util/run-vm-tests #"^mload"))
+
+(deftest mstore
+  (test.util/run-vm-tests #"^mstore"))

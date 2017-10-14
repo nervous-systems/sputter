@@ -17,7 +17,7 @@
   (join [word other n]
     "Replace `n` right-most _bytes_ in `word` with `n` left-most
      bytes from `other`, returning `word`.")
-  (insert [word b pos]
+  (insert [word pos b]
     "Insert single-byte word `b` at `pos` in `word`.
      A `pos` of zero points to the left-most byte.")
   (zero? [word])
@@ -38,11 +38,11 @@
           (b/>> other (* 8 (- size n)))))
   (zero? [word]
     (clojure.core/zero? word))
-  (insert [word b pos]
-    (let [prefix (b/and  word (b/<< (b/mask (* 8 pos)) 8))
+  (insert [word pos b]
+    (let [prefix (b/>>   word (* 8 (- size pos 1)))
           suffix (b/mask word (* 8 (- size pos 1)))]
       (-> prefix
-          (b/or b)
+          (b/or (b/mask b 0xFF))
           (b/<< (* 8 (- size pos 1)))
           (b/or suffix))))
   (as-biginteger [word]
