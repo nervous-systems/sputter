@@ -25,8 +25,10 @@
   ::sub word/sub})
 
 (defmethod operate ::dup [state op]
-  (-> (reduce state/push state (::popped op))
-      (state/push (last (::popped op)))))
+  (if (< (count (::popped op)) (::variant op))
+    (assoc state :sputter/error :stack-underflow)
+    (-> (reduce state/push state (::popped op))
+        (state/push (last (::popped op))))))
 
 (defmethod operate ::mload [state op]
   (let [[pos]        (::popped op)

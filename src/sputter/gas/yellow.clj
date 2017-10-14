@@ -6,7 +6,7 @@
 (def constants
   {:zero               0 :base         2 :verylow     3 :low           5
    :mid                8 :high        10 :ext        20 :sload        50
-   :jumpdest           1 :sset      2000 :sreset   5000 :sclear    15000
+   :jumpdest           1 :sset     20000 :sreset   5000 :sclear    15000
    :suicide        24000 :create   32000 :call       40 :callvalue  9000
    :callnewaccount 25000 :exp         10 :expbyte    10 :log         375
    :logdata            8 :logtopic  375 :sha3        30 :sha3word      6
