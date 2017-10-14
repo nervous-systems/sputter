@@ -9,20 +9,21 @@
 
 (defmulti operate (fn [state op] (::mnemonic op)))
 
+(defmethod operate :default [state op]
+  (assoc state :sputter/error :not-implemented))
+
+(derive ::jumpdest ::no-op)
+(derive ::pop      ::no-op)
+
+(defmethod operate ::no-op [state op]
+  state)
+
 (defn register-op [mnemonic f]
   (defmethod operate mnemonic [state op]
     (state/push state (apply f (::popped op)))))
 
-(defn register-ops [mnemonic->f]
-  (doseq [[mnemonic f] mnemonic->f]
-    (register-op mnemonic f)))
-
-(defmethod operate :default [state op]
-  (throw (ex-info "Operation not implemented" op)))
-
-(register-ops
- {::add word/add
-  ::sub word/sub})
+(register-op ::add word/add)
+(register-op ::sub word/sub)
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
@@ -41,10 +42,11 @@
 
 (defmethod operate ::swap [state op]
   (let [[h & t] (::popped op)
-        state   (state/push state h)
         t       (reverse t)]
-    (-> (reduce state/push state (rest t))
-        (state/push (first t)))))
+    (as-> state s
+      (state/push s h)
+      (reduce state/push s (rest t))
+      (state/push s (first t)))))
 
 (defmethod operate ::sstore [state op]
   (apply storage/store state :recipient (::popped op)))
@@ -56,9 +58,6 @@
 (defmethod operate ::push [state op]
   (state/push state (::data op)))
 
-(defmethod operate ::jumpdest [state op]
-  state)
-
 (defn- jump* [state target]
   (let [state' (state/position state target)]
     (if (not= (::mnemonic (state/instruction state')) :jumpdest)
@@ -66,7 +65,7 @@
       state')))
 
 (defmethod operate ::jump [state op]
-  (jump* state (first (::popped op))))
+  (->> op ::popped first (jump* state)))
 
 (defmethod operate ::jumpi [state op]
   (let [[pos v] (::popped op)]
