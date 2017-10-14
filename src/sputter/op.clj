@@ -25,10 +25,8 @@
   ::sub word/sub})
 
 (defmethod operate ::dup [state op]
-  (if (< (count (::popped op)) (::variant op))
-    (assoc state :sputter/error :stack-underflow)
-    (-> (reduce state/push state (::popped op))
-        (state/push (last (::popped op))))))
+  (-> (reduce state/push state (::popped op))
+      (state/push (last (::popped op)))))
 
 (defmethod operate ::mload [state op]
   (let [[pos]        (::popped op)
@@ -43,8 +41,10 @@
 
 (defmethod operate ::swap [state op]
   (let [[h & t] (::popped op)
-        state   (state/push state h)]
-    (reduce state/push state t)))
+        state   (state/push state h)
+        t       (reverse t)]
+    (-> (reduce state/push state (rest t))
+        (state/push (first t)))))
 
 (defmethod operate ::sstore [state op]
   (apply storage/store state :recipient (::popped op)))
@@ -59,9 +59,17 @@
 (defmethod operate ::jumpdest [state op]
   state)
 
+(defn- jump* [state target]
+  (let [state' (state/position state target)]
+    (if (not= (::mnemonic (state/instruction state')) :jumpdest)
+      (assoc state :sputter/error :invalid-jump)
+      state')))
+
 (defmethod operate ::jump [state op]
-  (state/position state (first (::popped op))))
+  (jump* state (first (::popped op))))
 
 (defmethod operate ::jumpi [state op]
   (let [[pos v] (::popped op)]
-    (cond-> state (not (word/zero? v)) (state/position pos))))
+    (if (word/zero? v)
+      state
+      (jump* state pos))))

@@ -8,8 +8,14 @@
 (deftest arithmetic-sub
   (test.util/run-vm-tests #"^sub\d+$"))
 
-(deftest pushdupswap-dup
+(deftest dup
   (test.util/run-vm-tests #"^dup"))
 
-(deftest pushdupswap-push
+(deftest swap
+  (test.util/run-vm-tests #"^swap"))
+
+(deftest push
   (test.util/run-vm-tests #"^push(?!32AndSuicide)"))
+
+(deftest mload
+  (test.util/run-vm-tests #"^mload"))

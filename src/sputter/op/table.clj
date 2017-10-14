@@ -16,11 +16,13 @@
           :sputter.op/width     1} ks))
 
 (def ^:private stack->ops
-  {0 {0x5b :sputter.op/jumpdest}
+  {0 {0x5b :sputter.op/jumpdest
+      0x00 :sputter.op/stop}
 
    1 {0x20 :sputter.op/sha3
-      0x56 :sputter.op/jump
-      0x51 :sputter.op/mload}
+      0x50 :sputter.op/pop
+      0x51 :sputter.op/mload
+      0x56 :sputter.op/jump}
 
    2 {0x01 :sputter.op/add  0x02 :sputter.op/mul  0x03 :sputter.op/sub
       0x04 :sputter.op/div  0x05 :sputter.op/sdiv 0x06 :sputter.op/mod
@@ -44,8 +46,12 @@
         (fn [op]
           (assoc op ::sputter.op/width (inc (::sputter.op/variant op)))))))
 
-(def dups  (op-variants 0x80 0x90 :dup))
-(def swaps (op-variants 0x90 0xa0 :swap))
+(def dups (op-variants 0x80 0x90 :dup))
+
+(def swaps
+  (->> (op-variants 0x90 0xa0 :swap)
+       (map-values #(update % ::sputter.op/stack-pop inc))))
+
 (def ops
   (merge
    pushes dups swaps simple-ops

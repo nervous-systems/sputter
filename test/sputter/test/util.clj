@@ -40,11 +40,11 @@
        (mapcat file->tests))
       entries)))
 
-(def all-tests (delay (->test-suite)))
+(def vm-tests (delay (->test-suite)))
 
 (defn named-tests [re]
   (into (sorted-map)
-    (for [[test-name test] @all-tests
+    (for [[test-name test] @vm-tests
           :when (re-find re (name test-name))]
       [test-name test])))
 
