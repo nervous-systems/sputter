@@ -1,10 +1,11 @@
 (ns sputter.vm
-  (:require [sputter.op       :as op]
-            [sputter.op.table :as op.table]
-            [sputter.util     :as util]
-            [sputter.gas      :as gas]
-            [sputter.word     :as word]
-            [sputter.state    :as state] :reload))
+  (:require [sputter.op         :as op]
+            [sputter.op.table   :as op.table]
+            [sputter.util       :as util]
+            [sputter.gas        :as gas]
+            [sputter.word       :as word]
+            [sputter.util.state :as s]
+            [sputter.state      :as state] :reload))
 
 (defmulti disassemble-op (fn [op bytes] (::op/mnemonic op)))
 (defmethod disassemble-op :default [op bytes] op)
@@ -41,21 +42,18 @@
       (let [op     (assoc op ::op/popped popped)
             v-cost (gas/variable-cost gas-model op state)
             state  (state/deduct-gas state v-cost)]
-        (if (terminated? state)
-          state
-          (-> state
-              (op/operate    op)
-              (state/advance (::op/width op))))))))
+        (s/state-> state
+          (op/operate    op)
+          (state/advance (::op/width op)))))))
 
 (defn step [state & [{:keys [gas-model]
                       :or   {gas-model gas/yellow-paper}}]]
   (if (terminated? state)
     (assoc state ::terminated? true)
     (let [op      (state/instruction state)
-          f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))
-          state   (state/deduct-gas state f-cost)]
-      (cond-> state
-        (not (terminated? state)) (operate op gas-model)))))
+          f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))]
+      (s/state-> (state/deduct-gas state f-cost)
+        (operate op gas-model)))))
 
 (defn execute [state & [opts]]
   (->> state
