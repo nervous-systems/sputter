@@ -14,6 +14,9 @@
 (deftest div
   (test.util/run-vm-tests #"^div"))
 
+(deftest mod
+  (test.util/run-vm-tests #"^mod"))
+
 (deftest dup
   (test.util/run-vm-tests #"^dup"))
 

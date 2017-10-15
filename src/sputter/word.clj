@@ -11,13 +11,15 @@
   (truncate [word]
     "Contain within maximum word size.")
   (add [word x]
-    "Add two words, returning a word.")
+    "`word` + `x`")
   (sub [word x]
-    "Subtract two words, returning a word.")
+    "`word` - `x`")
   (mul [word x]
-    "Multiply two words, returning a word.")
+    "`word` * `x`")
+  (mod [word x]
+    "`word` % `x`")
   (div [word x]
-    "Divide two words, returning a word.")
+    "`word` / `x`")
   (join [word other n]
     "Replace `n` right-most _bytes_ in `word` with `n` left-most
      bytes from `other`, returning `word`.")
@@ -41,6 +43,8 @@
     (-> word (b/* x) truncate))
   (div [word x]
     (-> word (b// x) truncate))
+  (mod [word x]
+    (-> word (b/mod x) truncate))
   (join [word other n]
     (b/or (truncate (b/<< word (* 8 n)))
           (b/>> other (* 8 (- size n)))))

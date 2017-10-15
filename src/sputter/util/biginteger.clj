@@ -1,6 +1,6 @@
 (ns sputter.util.biginteger
   (:import [java.math BigInteger])
-  (:refer-clojure :exclude [or and - + * / not]))
+  (:refer-clojure :exclude [or and - + * / not mod]))
 
 (def one  BigInteger/ONE)
 (def zero (biginteger 0))
@@ -8,6 +8,7 @@
 (defmacro <<  [x y] `(.shiftLeft  ~x ~y))
 (defmacro >>  [x y] `(.shiftRight ~x ~y))
 (defmacro pow [x y] `(.pow        ~x ~y))
+(defmacro mod [x y] `(.mod        ~x ~y))
 
 (defmacro not [x] `(.not ~x))
 

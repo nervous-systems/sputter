@@ -22,13 +22,17 @@
   (defmethod operate mnemonic [state op]
     (state/push state (apply f (::popped op)))))
 
+(defn- zero-guard [f]
+  (fn [x y]
+    (if (word/zero? y)
+      y
+      (f x y))))
+
 (register-op ::add word/add)
 (register-op ::sub word/sub)
 (register-op ::mul word/mul)
-(register-op ::div (fn [n d]
-                     (if (word/zero? d)
-                       d
-                       (word/div n d))))
+(register-op ::div (zero-guard word/div))
+(register-op ::mod (zero-guard word/mod))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
