@@ -5,11 +5,17 @@
 (deftest add
   (test.util/run-vm-tests #"^add\d+$"))
 
+(deftest addmod
+  (test.util/run-vm-tests #"^addmod[^_]+$"))
+
 (deftest sub
   (test.util/run-vm-tests #"^sub\d+$"))
 
 (deftest mul
   (test.util/run-vm-tests #"^mul(?!mod)"))
+
+(deftest mulmod
+  (test.util/run-vm-tests #"^mulmod[^_]+$"))
 
 (deftest div
   (test.util/run-vm-tests #"^div"))

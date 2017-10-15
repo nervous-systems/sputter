@@ -18,15 +18,15 @@
 (defmethod operate ::no-op [state op]
   state)
 
-(defn register-op [mnemonic f]
+(defn- register-op [mnemonic f]
   (defmethod operate mnemonic [state op]
     (state/push state (apply f (::popped op)))))
 
 (defn- zero-guard [f]
-  (fn [x y]
-    (if (word/zero? y)
-      y
-      (f x y))))
+  (fn [& args]
+    (if (word/zero? (last args))
+      word/zero
+      (apply f args))))
 
 (register-op ::add word/add)
 (register-op ::sub word/sub)
@@ -34,8 +34,11 @@
 (register-op ::div (zero-guard word/div))
 (register-op ::mod (zero-guard word/mod))
 (register-op ::or  word/or)
-(register-op ::gt (fn [x y] (if (< y x) word/one word/zero)))
-(register-op ::lt (fn [x y] (if (< x y) word/one word/zero)))
+(register-op ::gt  (fn [x y] (if (< y x) word/one word/zero)))
+(register-op ::lt  (fn [x y] (if (< x y) word/one word/zero)))
+
+(register-op ::addmod (zero-guard word/add))
+(register-op ::mulmod (zero-guard word/mul))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))

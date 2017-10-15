@@ -102,10 +102,7 @@
                         {::vals [exp act]}))))))
 
 (defn assert-storage [test exp state]
-  (doseq [[addr pos->w] exp :let [act-count (storage/stored state addr)]]
-    (is (= (count pos->w) act-count)
-        (str test ": Storage count mismatch for "
-             addr ": " (count pos->w) " != " act-count))
+  (doseq [[addr pos->w] exp]
     (doseq [[pos w] pos->w :let [act-w (storage/retrieve state addr pos)]]
       (is (= w act-w)
           (str test ": Storage value mismatch for "

@@ -10,12 +10,10 @@
 (defprotocol VMWord
   (truncate [word]
     "Contain within maximum word size.")
-  (add [word x]
-    "`word` + `x`")
+  (add [word x] [word x m] "`word` + `x` [% `m`]")
   (sub [word x]
     "`word` - `x`")
-  (mul [word x]
-    "`word` * `x`")
+  (mul [word x] [word x m] "`word` * `x` [% `m`]")
   (mod [word x]
     "`word` % `x`")
   (div [word x]
@@ -37,12 +35,14 @@
   VMWord
   (truncate [word]
     (b/and word max-value))
-  (add [word x]
-    (-> word (b/+ x) truncate))
+  (add
+    ([word x]   (-> word (b/+ x) truncate))
+    ([word x m] (-> word (b/+ x) (mod m))))
   (sub [word x]
     (-> word (b/- x) truncate))
-  (mul [word x]
-    (-> word (b/* x) truncate))
+  (mul
+    ([word x]   (-> word (b/* x) truncate))
+    ([word x m] (-> word (b/* x) (mod m))))
   (div [word x]
     (-> word (b// x) truncate))
   (mod [word x]
