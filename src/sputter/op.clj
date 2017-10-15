@@ -25,6 +25,10 @@
 (register-op ::add word/add)
 (register-op ::sub word/sub)
 (register-op ::mul word/mul)
+(register-op ::div (fn [n d]
+                     (if (word/zero? d)
+                       d
+                       (word/div n d))))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))

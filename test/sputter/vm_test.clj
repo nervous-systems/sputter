@@ -11,6 +11,9 @@
 (deftest mul
   (test.util/run-vm-tests #"^mul(?!mod)"))
 
+(deftest div
+  (test.util/run-vm-tests #"^div"))
+
 (deftest dup
   (test.util/run-vm-tests #"^dup"))
 
