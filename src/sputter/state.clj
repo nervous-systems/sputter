@@ -45,22 +45,22 @@
       [(assoc state :stack (apply list t)) h]))
 
   storage/VMStorage
-  (retrieve [state addr pos]
-    (storage/retrieve storage (expand-addr message addr) pos))
   (store [state addr pos word]
     (update state :storage
             storage/store (expand-addr message addr) pos word))
+  (retrieve [state addr pos]
+    (storage/retrieve storage (expand-addr message addr) pos))
   (stored [state addr]
     (storage/stored storage addr))
 
   mem/VMMemory
-  (remember [state pos word]
-    (update state :memory mem/remember pos word))
-  (recall [state pos]
-    (let [[mem word] (mem/recall memory pos)]
+  (store [state slot word]
+    (update state :memory mem/store slot word))
+  (retrieve [state slot]
+    (let [[mem word] (mem/retrieve memory slot)]
       [(assoc state :memory mem) word]))
-  (remembered [_]
-    (mem/remembered memory)))
+  (stored [_]
+    (mem/stored memory)))
 
 (defn advance
   "Increment the instruction pointer by `offset`, returning the state."

@@ -28,7 +28,7 @@
 (defmethod op->variable-cost ::mem-extend [op constants]
   (let [width      (mem-op->width op)
         [addr]     (::op/popped  op)
-        prev-words (-> op :sputter/state mem/remembered)
+        prev-words (-> op :sputter/state mem/stored)
         curr-words (int (Math/ceil (/ (+ addr width) word/size)))]
     (max 0 (- (mem-fee curr-words (:per-memory-word constants))
               (mem-fee prev-words (:per-memory-word constants))))))

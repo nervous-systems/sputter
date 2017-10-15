@@ -3,43 +3,27 @@
             [sputter.util.biginteger :as b]))
 
 (defprotocol VMMemory
-  (remember [mem pos word]
-    "Store `word` starting at byte position `pos` in `mem`.
+  (store [mem slot word]
+    "Store `word` at `slot` within `mem`.
      Returns `mem`.")
-  (recall [mem pos]
-    "Retrieve the word starting at byte position `pos` in `mem`.
+  (retrieve [mem slot]
+    "Retrieve the word at `slot` within `mem`, returning zero if not found.
 
      Returns a vector of `[mem word]`.")
-  (remembered [mem]
+  (stored [mem]
     "Return the number of words in `mem`, or the number of words
      implied by out-of-bounds accesses of `mem`, whichever is greater."))
 
-(defn- update* [mem pos f & args]
-  (apply
-   update-in mem [:table pos]
-   (fnil f word/zero) args))
-
 (defrecord Memory [table extent]
   VMMemory
-  (remember [mem pos word]
-    (let [slot    (quot pos word/size)
-          in-slot (- word/size (rem pos word/size))]
-      (-> mem
-          (update* slot word/join word in-slot)
-          (cond-> (< in-slot word/size)
-            (update* (inc slot) #(word/join word % in-slot))))))
+  (store [mem slot word]
+    (update mem :table assoc slot word))
 
-  (recall [mem pos]
-    (let [slot      (quot pos word/size)
-          from-next (rem pos word/size)
-          extent'   (cond-> slot (not (zero? from-next)) inc)]
-      [(update mem :extent max (inc extent'))
-       (word/join
-        (table slot word/zero)
-        (table (inc slot) word/zero)
-        from-next)]))
+  (retrieve [mem slot]
+    [(update mem :extent max (inc slot))
+     (table slot word/zero)])
 
-  (remembered [mem]
+  (stored [mem]
     (let [k (some-> table last key)]
       (max extent (inc (or k -1))))))
 
