@@ -14,6 +14,8 @@
     "Add two words, returning a word.")
   (sub [word x]
     "Subtract two words, returning a word.")
+  (mul [word x]
+    "Multiply two words, returning a word.")
   (join [word other n]
     "Replace `n` right-most _bytes_ in `word` with `n` left-most
      bytes from `other`, returning `word`.")
@@ -33,6 +35,8 @@
     (-> word (b/+ x) truncate))
   (sub [word x]
     (-> word (b/- x) truncate))
+  (mul [word x]
+    (-> word (b/* x) truncate))
   (join [word other n]
     (b/or (truncate (b/<< word (* 8 n)))
           (b/>> other (* 8 (- size n)))))

@@ -18,6 +18,7 @@
 
 (derive ::op/mstore ::mem-extend)
 (derive ::op/mload  ::mem-extend)
+(derive ::op/return ::mem-extend)
 
 (defmethod op->variable-cost ::mem-extend [op constants]
   (let [width      (::op/variant op word/size)

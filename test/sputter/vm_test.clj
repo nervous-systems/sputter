@@ -8,6 +8,9 @@
 (deftest sub
   (test.util/run-vm-tests #"^sub\d+$"))
 
+(deftest mul
+  (test.util/run-vm-tests #"^mul(?!mod)"))
+
 (deftest dup
   (test.util/run-vm-tests #"^dup"))
 

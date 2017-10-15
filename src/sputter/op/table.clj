@@ -31,7 +31,7 @@
       0x0d :sputter.op/sgt  0x0e :sputter.op/eq   0x10 :sputter.op/and
       0x11 :sputter.op/or   0x12 :sputter.op/xor  0x57 :sputter.op/jumpi
       0x13 :sputter.op/byte 0x35 :sputter.op/calldataload
-      0x52 :sputter.op/mstore 0xf2 :sputter.op/return
+      0x52 :sputter.op/mstore 0xf3 :sputter.op/return
       0x55 :sputter.op/sstore}})
 
 (def simple-ops

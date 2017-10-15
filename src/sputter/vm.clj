@@ -16,8 +16,13 @@
     (assoc op ::op/data (word/->Word n))))
 
 (defn- read-op [bytes i]
-  (let [op (-> (get bytes i) (bit-and 0xFF))]
-    (-> op op.table/ops (assoc ::pos i) (disassemble-op bytes))))
+  (let [code (bit-and 0xFF (get bytes i))
+        op   (op.table/ops code)]
+    (when-not (::op/mnemonic op)
+      (throw (ex-info
+              (str "Unable to dissassemble: " (util/bytes->hex code))
+              {:i i :op op})))
+    (-> op (assoc ::pos i) (disassemble-op bytes))))
 
 (defn disassemble [bytes]
   (let [bytes (cond-> bytes (string? bytes) util/hex->bytes)]
@@ -32,8 +37,9 @@
 
 (defn- terminated? [state]
   (or (not (state/instruction state))
-      (:sputter/error state)
-      (::terminated?  state)))
+      (:sputter/error  state)
+      (:sputter/return state)
+      (::terminated?   state)))
 
 (defn- operate [state op gas-model]
   (let [pop-n          (::op/stack-pop op)

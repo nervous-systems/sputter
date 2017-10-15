@@ -24,6 +24,7 @@
 
 (register-op ::add word/add)
 (register-op ::sub word/sub)
+(register-op ::mul word/mul)
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
@@ -39,6 +40,10 @@
                    8   util.mem/remember-byte
                    nil mem/remember)]
     (apply remember state (::popped op))))
+
+(defmethod operate ::return [state op]
+  (let [[state i] (apply util.mem/recall-biginteger state (::popped op))]
+    (assoc state :sputter/return i)))
 
 (defmethod operate ::swap [state op]
   (let [[h & t] (::popped op)

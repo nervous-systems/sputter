@@ -49,7 +49,9 @@
       [test-name test])))
 
 (defn- hex->biginteger [s]
-  (biginteger (util/hex->bytes s)))
+  (if (= s "0x")
+    (biginteger 0)
+    (biginteger (util/hex->bytes s))))
 
 (defn- ->storage-map [m]
   (util/for-map [[pos w] m]
@@ -74,6 +76,13 @@
   (when-let [exp (some-> exp hex->biginteger)]
     (is (= exp (:gas state))
         (str test ": Gas value mismatch. " exp " != " (:gas state)))))
+
+(let [zero (biginteger 0)]
+  (defn assert-return [test exp state]
+    (let [exp (hex->biginteger (or exp "0x"))
+          act (:sputter/return state word/zero)]
+      (is (= exp act)
+          (str test ": Return value mismatch. " exp " != " act)))))
 
 (defn assert-error [test exp state]
   (if (:sputter/error state)
@@ -107,7 +116,8 @@
         post  (vm/execute state)]
     (assert-error   test-name test post)
     (assert-gas     test-name (:gas  test) post)
-    (assert-storage test-name (map->storage (:post test)) post)))
+    (assert-storage test-name (map->storage (:post test)) post)
+    (assert-return  test-name (:out test) post)))
 
 (defonce last-error (atom nil))
 
