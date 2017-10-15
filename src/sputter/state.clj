@@ -1,8 +1,9 @@
 (ns sputter.state
   "Immutable EVM execution state."
-  (:require [sputter.word          :as word]
-            [sputter.state.memory  :as mem]
-            [sputter.state.storage :as storage])
+  (:require [sputter.word               :as word]
+            [sputter.state.memory       :as mem]
+            [sputter.state.storage      :as storage]
+            [sputter.state.storage.stub :as storage.stub])
   (:refer-clojure :exclude [pop]))
 
 (defprotocol VMState
@@ -33,7 +34,7 @@
     (assoc state :pointer (word/->Word pos)))
   (deduct-gas [state n]
     (if (neg? (- gas n))
-      (assoc  state :sputter/error ::gas-insufficient)
+      (assoc  state :sputter/error :gas-insufficient)
       (update state :gas - n)))
   (instruction [state]
     (program pointer))
@@ -49,6 +50,8 @@
   (store [state addr pos word]
     (update state :storage
             storage/store (expand-addr message addr) pos word))
+  (stored [state addr]
+    (storage/stored storage addr))
 
   mem/VMMemory
   (remember [state pos word]
@@ -61,14 +64,15 @@
 
 (defn advance
   "Increment the instruction pointer by `offset`, returning the state."
-  [state offset]
-  (position state (word/add (:position state) (word/->Word offset))))
+  [state & [offset]]
+  (position state (word/add (:pointer state) (word/->Word (or offset 1)))))
 
 (defn map->State
   "Return a state record, optionally initialized with values from `defaults`"
   [& [defaults]]
   (let [mem     (mem/->Memory (:memory defaults {}))
-        storage (storage/->mock-Storage (:storage defaults {}))]
+        storage (as-> (:storage defaults {}) s
+                  (cond-> s (map? s) storage.stub/->Storage))]
     (State. (:program defaults {})
             (:pointer defaults word/zero)
             (:stack   defaults '())

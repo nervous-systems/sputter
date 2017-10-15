@@ -10,8 +10,7 @@
 (defn remember-byte [mem pos b]
   (let [slot       (* word/size (quot pos word/size))
         [mem word] (mem/recall mem slot)]
-    (->> (rem pos word/size)
-         (word/insert word b)
+    (->> (word/insert word (rem pos word/size) b)
          (mem/remember mem slot))))
 
 (defn- reduce-words [f mem val positions]

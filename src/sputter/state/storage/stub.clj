@@ -14,9 +14,12 @@
   (stored [m addr]
     (count (m addr))))
 
+(defn- ->addr-storage [m]
+  (for-map [[pos w] m
+            :let  [w (word/->Word w)]
+            :when (not (word/zero? w))]
+    pos w))
+
 (defn ->Storage [& [m]]
-  (for-map [[addr m] (or m {})]
-    (word/->Word addr) (for-map [[pos w] m
-                                 :let  [w (word/->Word w)]
-                                 :when (not (word/zero? w))]
-                         pos w)))
+  (for-map [[addr m] m]
+    (word/->Word addr) (->addr-storage m)))

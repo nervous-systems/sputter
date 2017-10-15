@@ -1,10 +1,11 @@
 (ns sputter.vm
-  (:require [sputter.op       :as op]
-            [sputter.op.table :as op.table]
-            [sputter.util     :as util]
-            [sputter.gas      :as gas]
-            [sputter.word     :as word]
-            [sputter.state    :as state] :reload))
+  (:require [sputter.op         :as op]
+            [sputter.op.table   :as op.table]
+            [sputter.util       :as util]
+            [sputter.gas        :as gas]
+            [sputter.word       :as word]
+            [sputter.util.state :as s]
+            [sputter.state      :as state] :reload))
 
 (defmulti disassemble-op (fn [op bytes] (::op/mnemonic op)))
 (defmethod disassemble-op :default [op bytes] op)
@@ -15,8 +16,13 @@
     (assoc op ::op/data (word/->Word n))))
 
 (defn- read-op [bytes i]
-  (let [op (-> (get bytes i) (bit-and 0xFF))]
-    (-> op op.table/ops (assoc ::pos i) (disassemble-op bytes))))
+  (let [code (bit-and 0xFF (get bytes i))
+        op   (op.table/ops code)]
+    (when-not (::op/mnemonic op)
+      (throw (ex-info
+              (str "Unable to dissassemble: " (util/bytes->hex code))
+              {:i i :op op})))
+    (-> op (assoc ::pos i) (disassemble-op bytes))))
 
 (defn disassemble [bytes]
   (let [bytes (cond-> bytes (string? bytes) util/hex->bytes)]
@@ -31,29 +37,33 @@
 
 (defn- terminated? [state]
   (or (not (state/instruction state))
-      (:sputter/error state)
-      (::terminated?  state)))
+      (:sputter/error  state)
+      (:sputter/return state)
+      (::terminated?   state)))
 
 (defn- operate [state op gas-model]
-  (let [[state popped] (state/pop state (::op/stack-pop op))
-        op             (assoc op ::op/popped popped)
-        v-cost         (gas/variable-cost gas-model op state)
-        state          (state/deduct-gas state v-cost)]
-    (if (terminated? state)
-      state
-      (-> state
-          (op/operate    op)
-          (state/advance (::op/width op))))))
+  (let [pop-n          (::op/stack-pop op)
+        [state popped] (state/pop state pop-n)]
+    (if (< (count popped) pop-n)
+      (assoc state :sputter/error :stack-underflow)
+      (let [op     (assoc op ::op/popped popped)
+            v-cost (gas/variable-cost gas-model op state)
+            state  (s/state-> state
+                     (state/deduct-gas v-cost)
+                     (op/operate       op))]
+        (cond-> (dissoc state :sputter/advance?)
+          (:sputter/advance? state true) (state/advance (::op/width op)))))))
 
-(defn step [state & [{:keys [gas-model]
-                      :or   {gas-model gas/yellow-paper}}]]
+(defn step
+  [state & [{:keys [gas-model]
+             :or   {gas-model gas/yellow-paper}}]]
   (if (terminated? state)
     (assoc state ::terminated? true)
     (let [op      (state/instruction state)
-          f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))
-          state   (state/deduct-gas state f-cost)]
-      (cond-> state
-        (not (terminated? state)) (operate op gas-model)))))
+          f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))]
+      (s/state-> state
+        (state/deduct-gas f-cost)
+        (operate          op gas-model)))))
 
 (defn execute [state & [opts]]
   (->> state

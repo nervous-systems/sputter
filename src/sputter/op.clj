@@ -9,20 +9,36 @@
 
 (defmulti operate (fn [state op] (::mnemonic op)))
 
-(defn register-op [mnemonic f]
+(defmethod operate :default [state op]
+  (assoc state :sputter/error :not-implemented))
+
+(derive ::jumpdest ::no-op)
+(derive ::pop      ::no-op)
+
+(defmethod operate ::no-op [state op]
+  state)
+
+(defn- register-op [mnemonic f]
   (defmethod operate mnemonic [state op]
     (state/push state (apply f (::popped op)))))
 
-(defn register-ops [mnemonic->f]
-  (doseq [[mnemonic f] mnemonic->f]
-    (register-op mnemonic f)))
+(defn- zero-guard [f]
+  (fn [& args]
+    (if (word/zero? (last args))
+      word/zero
+      (apply f args))))
 
-(defmethod operate :default [state op]
-  (throw (ex-info "Operation not implemented" op)))
+(register-op ::add word/add)
+(register-op ::sub word/sub)
+(register-op ::mul word/mul)
+(register-op ::div (zero-guard word/div))
+(register-op ::mod (zero-guard word/mod))
+(register-op ::or  word/or)
+(register-op ::gt  (fn [x y] (if (< y x) word/one word/zero)))
+(register-op ::lt  (fn [x y] (if (< x y) word/one word/zero)))
 
-(register-ops
- {::add word/add
-  ::sub word/sub})
+(register-op ::addmod (zero-guard word/add))
+(register-op ::mulmod (zero-guard word/mul))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
@@ -39,10 +55,17 @@
                    nil mem/remember)]
     (apply remember state (::popped op))))
 
+(defmethod operate ::return [state op]
+  (let [[state i] (apply util.mem/recall-biginteger state (::popped op))]
+    (assoc state :sputter/return i)))
+
 (defmethod operate ::swap [state op]
   (let [[h & t] (::popped op)
-        state   (state/push state h)]
-    (reduce state/push state t)))
+        t       (reverse t)]
+    (as-> state s
+      (state/push s h)
+      (reduce state/push s (rest t))
+      (state/push s (first t)))))
 
 (defmethod operate ::sstore [state op]
   (apply storage/store state :recipient (::popped op)))
@@ -54,12 +77,15 @@
 (defmethod operate ::push [state op]
   (state/push state (::data op)))
 
-(defmethod operate ::jumpdest [state op]
-  state)
+(defn- jump* [state target]
+  (let [state' (state/position state target)]
+    (if (not= (::mnemonic (state/instruction state')) ::jumpdest)
+      (assoc state :sputter/error :invalid-jump)
+      (assoc state' :sputter/advance? false))))
 
 (defmethod operate ::jump [state op]
-  (state/position state (first (::popped op))))
+  (->> op ::popped first (jump* state)))
 
 (defmethod operate ::jumpi [state op]
   (let [[pos v] (::popped op)]
-    (cond-> state (not (word/zero? v)) (state/position pos))))
+    (cond-> state (not (word/zero? v)) (jump* pos))))

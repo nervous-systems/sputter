@@ -1,0 +1,15 @@
+machine:
+  java:
+    version: oraclejdk8
+
+dependencies:
+  pre:
+    - lein deps
+    - git submodule update --init --recursive
+  cache_directories:
+    - ~/.m2
+    - ~/.lein
+
+test:
+  override:
+    - lein test
