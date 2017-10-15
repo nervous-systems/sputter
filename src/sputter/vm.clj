@@ -47,11 +47,12 @@
     (if (< (count popped) pop-n)
       (assoc state :sputter/error :stack-underflow)
       (let [op     (assoc op ::op/popped popped)
-            v-cost (gas/variable-cost gas-model op state)]
-        (s/state-> state
-          (state/deduct-gas v-cost)
-          (op/operate       op)
-          (state/advance    (::op/width op)))))))
+            v-cost (gas/variable-cost gas-model op state)
+            state  (s/state-> state
+                     (state/deduct-gas v-cost)
+                     (op/operate       op))]
+        (cond-> (dissoc state :sputter/advance?)
+          (:sputter/advance? state true) (state/advance (::op/width op)))))))
 
 (defn step
   [state & [{:keys [gas-model]

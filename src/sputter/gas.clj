@@ -20,8 +20,13 @@
 (derive ::op/mload  ::mem-extend)
 (derive ::op/return ::mem-extend)
 
+(defn- mem-op->width [op]
+  (case (::op/mnemonic op)
+    ::op/return (second (::op/popped op))
+    (::op/variant op word/size)))
+
 (defmethod op->variable-cost ::mem-extend [op constants]
-  (let [width      (::op/variant op word/size)
+  (let [width      (mem-op->width op)
         [addr]     (::op/popped  op)
         prev-words (-> op :sputter/state mem/remembered)
         curr-words (int (Math/ceil (/ (+ addr width) word/size)))]

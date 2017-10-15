@@ -33,6 +33,9 @@
 (register-op ::mul word/mul)
 (register-op ::div (zero-guard word/div))
 (register-op ::mod (zero-guard word/mod))
+(register-op ::or  word/or)
+(register-op ::gt (fn [x y] (if (< y x) word/one word/zero)))
+(register-op ::lt (fn [x y] (if (< x y) word/one word/zero)))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
@@ -73,9 +76,9 @@
 
 (defn- jump* [state target]
   (let [state' (state/position state target)]
-    (if (not= (::mnemonic (state/instruction state')) :jumpdest)
+    (if (not= (::mnemonic (state/instruction state')) ::jumpdest)
       (assoc state :sputter/error :invalid-jump)
-      state')))
+      (assoc state' :sputter/advance? false))))
 
 (defmethod operate ::jump [state op]
   (->> op ::popped first (jump* state)))

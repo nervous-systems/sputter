@@ -14,8 +14,17 @@
 (deftest div
   (test.util/run-vm-tests #"^div"))
 
-(deftest mod
+(deftest mod*
   (test.util/run-vm-tests #"^mod"))
+
+(deftest or*
+  (test.util/run-vm-tests #"^or\d+"))
+
+(deftest gt
+  (test.util/run-vm-tests #"^gt\d+"))
+
+(deftest lt
+  (test.util/run-vm-tests #"^lt\d+"))
 
 (deftest dup
   (test.util/run-vm-tests #"^dup"))
@@ -31,3 +40,6 @@
 
 (deftest mstore
   (test.util/run-vm-tests #"^mstore"))
+
+(deftest return
+  (test.util/run-vm-tests #"^return"))

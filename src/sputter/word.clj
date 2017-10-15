@@ -2,7 +2,7 @@
   (:require [sputter.util            :as util]
             [sputter.util.biginteger :as b])
   (:import [java.math BigInteger])
-  (:refer-clojure :exclude [zero?]))
+  (:refer-clojure :exclude [zero? or mod]))
 
 (def size      32)
 (def max-value (-> b/one (b/<< (* size 8)) (b/- b/one)))
@@ -20,6 +20,8 @@
     "`word` % `x`")
   (div [word x]
     "`word` / `x`")
+  (or [word x]
+    "`word` | `x`")
   (join [word other n]
     "Replace `n` right-most _bytes_ in `word` with `n` left-most
      bytes from `other`, returning `word`.")
@@ -45,6 +47,8 @@
     (-> word (b// x) truncate))
   (mod [word x]
     (-> word (b/mod x) truncate))
+  (or [word x]
+    (-> word (b/or x) truncate))
   (join [word other n]
     (b/or (truncate (b/<< word (* 8 n)))
           (b/>> other (* 8 (- size n)))))
@@ -69,4 +73,5 @@
     (string? x) (BigInteger. 1 (util/hex->bytes x))
     :else       (BigInteger. 1 x)))
 
+(def one  (->Word 1))
 (def zero (->Word 0))

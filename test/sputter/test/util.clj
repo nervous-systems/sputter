@@ -34,7 +34,7 @@
 (defn ->test-suite [& subpath]
   (let [path    (str test-path "/" (str/join "/" subpath))
         entries (->> path io/file file-seq)]
-    (into {}
+    (into []
       (comp
        (remove #(.isDirectory %))
        (mapcat file->tests))
@@ -43,7 +43,7 @@
 (def vm-tests (delay (->test-suite)))
 
 (defn named-tests [re]
-  (into (sorted-map)
+  (into []
     (for [[test-name test] @vm-tests
           :when (re-find re (name test-name))]
       [test-name test])))
