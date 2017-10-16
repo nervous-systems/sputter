@@ -2,7 +2,7 @@
   (:require [pandect.algo.sha3-256 :as sha]
             [sputter.op.table      :as op.table]
             [sputter.word          :as word]
-            [sputter.state.memory  :as memory]
+            [sputter.state.memory  :as mem]
             [sputter.util.memory   :as util.mem]
             [sputter.state         :as state]
             [sputter.state.storage :as storage]))
@@ -54,6 +54,9 @@
                 8   util.mem/store-byte
                 nil mem/store)]
     (apply store state (::popped op))))
+
+(defmethod operate ::msize [state op]
+  (state/push state (word/->Word (* (mem/stored state) word/size))))
 
 (defmethod operate ::return [state op]
   (let [[state i] (apply mem/recall state (::popped op))]

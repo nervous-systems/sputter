@@ -47,5 +47,8 @@
 (deftest mstore
   (test.util/run-vm-tests #"^mstore"))
 
+(deftest msize
+  (test.util/run-vm-tests #"^msize"))
+
 (deftest return
   (test.util/run-vm-tests #"^return"))

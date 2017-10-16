@@ -7,7 +7,8 @@
     "Store` `word` at position `at-byte` within `mem`,
      Returns `mem`.")
   (recall [mem from-byte n-bytes]
-    "Read a [[java.math.BigInteger]] `n-bytes` wide from `from-byte`")
+    "Read a [[java.math.BigInteger]] `n-bytes` wide from `from-byte`.
+     Returns vector of `[mem big-integer]`")
   (stored [mem]
     "Return the number of words in `mem`, or the number of words
      implied by out-of-bounds accesses of `mem`, whichever is greater."))

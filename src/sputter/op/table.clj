@@ -16,7 +16,8 @@
           :sputter.op/width     1} ks))
 
 (def ^:private stack->ops
-  {0 {0x5b :sputter.op/jumpdest
+  {0 {0x59 :sputter.op/msize
+      0x5b :sputter.op/jumpdest
       0x00 :sputter.op/stop}
 
    1 {0x20 :sputter.op/sha3
