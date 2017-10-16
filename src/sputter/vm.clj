@@ -59,8 +59,8 @@
              :or   {gas-model gas/yellow-paper}}]]
   (if (terminated? state)
     (assoc state ::terminated? true)
-    (let [op      (state/instruction state)
-          f-cost  (gas/fixed-cost gas-model (::op/mnemonic op))]
+    (let [op     (state/instruction state)
+          f-cost (gas/fixed-cost gas-model (::op/mnemonic op))]
       (s/state-> state
         (state/deduct-gas f-cost)
         (operate          op gas-model)))))

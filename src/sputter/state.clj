@@ -54,10 +54,10 @@
     (storage/stored storage addr))
 
   mem/VMMemory
-  (store [state slot word]
-    (update state :memory mem/store slot word))
-  (retrieve [state slot]
-    (let [[mem word] (mem/retrieve memory slot)]
+  (store [state at-byte word]
+    (update state :memory mem/store at-byte word))
+  (recall [state from-byte n-bytes]
+    (let [[mem word] (mem/recall memory from-byte n-bytes)]
       [(assoc state :memory mem) word]))
   (stored [_]
     (mem/stored memory)))

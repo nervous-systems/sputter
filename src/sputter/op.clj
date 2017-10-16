@@ -2,6 +2,7 @@
   (:require [pandect.algo.sha3-256 :as sha]
             [sputter.op.table      :as op.table]
             [sputter.word          :as word]
+            [sputter.state.memory  :as memory]
             [sputter.util.memory   :as util.mem]
             [sputter.state         :as state]
             [sputter.state.storage :as storage]))
@@ -45,17 +46,17 @@
 
 (defmethod operate ::mload [state op]
   (let [[pos]        (::popped op)
-        [state word] (util.mem/retrieve state pos)]
+        [state word] (util.mem/recall state pos)]
     (state/push state word)))
 
 (defmethod operate ::mstore [state op]
-  (let [remember (case (::variant op)
-                   8   util.mem/store-byte
-                   nil util.mem/store)]
-    (apply remember state (::popped op))))
+  (let [store (case (::variant op)
+                8   util.mem/store-byte
+                nil mem/store)]
+    (apply store state (::popped op))))
 
 (defmethod operate ::return [state op]
-  (let [[state i] (apply util.mem/retrieve-biginteger state (::popped op))]
+  (let [[state i] (apply mem/recall state (::popped op))]
     (assoc state :sputter/return i)))
 
 (defmethod operate ::swap [state op]
