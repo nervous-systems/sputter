@@ -32,11 +32,13 @@
   VMMemory
   (store [mem at-byte word]
     (let [slot    (quot at-byte word/size)
-          in-slot (- word/size (rem at-byte word/size))
-          mem     (update* mem slot word/join word in-slot)]
+          in-slot (- word/size (rem at-byte word/size))]
       (if (= word/size in-slot)
-        (update mem :extent max slot)
         (-> mem
+            (assoc-in [:table slot] word)
+            (update :extent max slot))
+        (-> mem
+            (update* slot         word/join word in-slot)
             (update* (inc slot) #(word/join word % in-slot))
             (update :extent max (inc slot))))))
 

@@ -5,11 +5,9 @@
   (:refer-clojure :exclude [zero? or mod]))
 
 (def size      32)
-(def max-value (-> b/one (b/<< (* size 8)) (b/- b/one)))
+(def max-value (b/mask (* 8 size)))
 
 (defprotocol VMWord
-  (truncate [word]
-    "Contain within maximum word size.")
   (add [word x] [word x m]
     "`word` + `x` [% `m`]")
   (sub [word x]
@@ -33,10 +31,11 @@
     "Return a [[java.math.BigInteger]] representation of this
     word's data."))
 
+(defn- truncate [word]
+  (b/and word max-value))
+
 (extend-type BigInteger
   VMWord
-  (truncate [word]
-    (b/and word max-value))
   (add
     ([word x]   (-> word (b/+ x) truncate))
     ([word x m] (-> word (b/+ x) (mod m))))

@@ -56,7 +56,8 @@
     (apply store state (::popped op))))
 
 (defmethod operate ::msize [state op]
-  (state/push state (word/->Word (* (mem/stored state) word/size))))
+  (let [n-bytes (* (mem/stored state) word/size)]
+    (state/push state (word/->Word n-bytes))))
 
 (defmethod operate ::return [state op]
   (let [[state i] (apply mem/recall state (::popped op))]
