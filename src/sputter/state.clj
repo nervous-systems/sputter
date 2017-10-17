@@ -54,13 +54,13 @@
     (storage/stored storage addr))
 
   mem/VMMemory
-  (store [state at-byte word]
-    (update state :memory mem/store at-byte word))
+  (insert [state dest-byte byte-vec n]
+    (update state :memory mem/insert dest-byte byte-vec n))
   (recall [state from-byte n-bytes]
     (let [[mem word] (mem/recall memory from-byte n-bytes)]
       [(assoc state :memory mem) word]))
-  (stored [_]
-    (mem/stored memory)))
+  (words [_]
+    (mem/words memory)))
 
 (defn advance
   "Increment the instruction pointer by `offset`, returning the state."
@@ -70,7 +70,7 @@
 (defn map->State
   "Return a state record, optionally initialized with values from `defaults`"
   [& [defaults]]
-  (let [mem     (mem/->Memory (:memory defaults {}))
+  (let [mem     (mem/->Memory (:memory defaults []))
         storage (as-> (:storage defaults {}) s
                   (cond-> s (map? s) storage.stub/->Storage))]
     (State. (:program defaults {})

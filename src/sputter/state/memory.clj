@@ -1,65 +1,41 @@
 (ns sputter.state.memory
   (:require [sputter.word            :as word]
-            [sputter.util.biginteger :as b]))
+            [clojure.core.rrb-vector :as rrb]))
 
 (defprotocol VMMemory
-  (store [mem at-byte word]
-    "Store` `word` at position `at-byte` within `mem`,
+  "Ephemeral byte-addressed data store."
+  (insert [mem dest-byte byte-vec n]
+    "Copy `n` right-most bytes from `byte-vec` to position `dest-byte` in `mem`.
      Returns `mem`.")
   (recall [mem from-byte n-bytes]
-    "Read a [[java.math.BigInteger]] `n-bytes` wide from `from-byte`.
-     Returns vector of `[mem big-integer]`")
-  (stored [mem]
-    "Return the number of words in `mem`, or the number of words
-     implied by out-of-bounds accesses of `mem`, whichever is greater."))
+    "Read `n-bytes` from `mem`, starting at `from-byte`, extending if necessary.
+     Returns vector of `[mem byte-vec]`")
+  (words [mem]
+    "Return the number of words in `mem`"))
 
-(defn- trim-biginteger [b pos n]
-  (let [extra (rem (+ pos n) word/size)]
-    (-> b
-        (cond-> (pos? extra)
-          (b/>> (* 8 (- word/size extra))))
-        (b/and (b/mask (* 8 n))))))
+(defn- extend* [table byte-pos]
+  (let [need (- byte-pos (count table))]
+    (cond-> table
+      (pos? need) (rrb/catvec (into (vector-of :byte)
+                                (repeat need 0))))))
 
-(defn- slot-range [from-byte n-bytes]
-  (range (quot from-byte word/size)
-         (Math/ceil (/ (+ from-byte n-bytes)
-                       word/size))))
-
-(defn- update* [mem slot f & args]
-  (apply update-in mem [:table slot] (fnil f word/zero) args))
-
-(defrecord Memory [table extent]
+(extend-type (type (rrb/vector))
   VMMemory
-  (store [mem at-byte word]
-    (let [slot    (quot at-byte word/size)
-          in-slot (- word/size (rem at-byte word/size))]
-      (if (= word/size in-slot)
-        (-> mem
-            (assoc-in [:table slot] word)
-            (update :extent max slot))
-        (-> mem
-            (update* slot         word/join word in-slot)
-            (update* (inc slot) #(word/join word % in-slot))
-            (update :extent max (inc slot))))))
-
+  (insert [mem dest-byte byte-vec n]
+    (let [data (rrb/subvec byte-vec (- (count byte-vec) n))
+          mem  (extend* mem (+ dest-byte n))]
+      (-> mem
+          (rrb/subvec 0    dest-byte)
+          (rrb/catvec data (rrb/subvec mem (+ dest-byte n))))))
   (recall [mem from-byte n-bytes]
-    (let [slots (slot-range from-byte n-bytes)
-          b     (reduce
-                 (fn [acc slot]
-                   (b/or (b/<< acc (* 8 word/size))
-                         (word/as-biginteger
-                          (table slot word/zero))))
-                 b/zero
-                 slots)]
-      [(update mem :extent max (last slots))
-       (trim-biginteger b from-byte n-bytes)]))
-
-  (stored [mem]
-    (inc extent)))
+    (let [mem (extend* mem (+ from-byte n-bytes))]
+      [mem (rrb/subvec mem from-byte (+ from-byte n-bytes))]))
+  (words [mem]
+    (int (Math/ceil (/ (count mem) word/size)))))
 
 (def memory? (partial satisfies? VMMemory))
 
-(defn ->Memory [x & [extent]]
+(defn ->Memory [x]
   (cond
     (memory? x) x
-    (map?    x) (Memory. (into (sorted-map) x) (or extent -1))))
+    (coll?   x) (into (rrb/vector-of :byte) x)))

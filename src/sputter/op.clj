@@ -46,17 +46,17 @@
 
 (defmethod operate ::mload [state op]
   (let [[pos]        (::popped op)
-        [state word] (util.mem/recall state pos)]
+        [state word] (util.mem/recall-word state pos)]
     (state/push state word)))
 
 (defmethod operate ::mstore [state op]
   (let [store (case (::variant op)
-                8   util.mem/store-byte
-                nil mem/store)]
+                8   util.mem/insert-byte
+                nil util.mem/insert-word)]
     (apply store state (::popped op))))
 
 (defmethod operate ::msize [state op]
-  (let [n-bytes (* (mem/stored state) word/size)]
+  (let [n-bytes (* (mem/words state) word/size)]
     (state/push state (word/->Word n-bytes))))
 
 (defmethod operate ::return [state op]

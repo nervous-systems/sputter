@@ -4,16 +4,13 @@
             [sputter.word            :as word]
             [sputter.util.biginteger :as b]))
 
-(defn store-byte [mem pos b]
-  (let [slot    (* word/size (quot pos word/size))
-        [mem w] (mem/recall mem slot word/size)
-        new-w   (word/insert (word/->Word w) (rem pos word/size) b)]
-    (mem/store mem slot new-w)))
+(defn insert-byte [mem pos w]
+  (let [b (-> w word/as-biginteger (b/mask 8) .intValue unchecked-byte)]
+    (mem/insert mem pos (vector-of :byte b) 1)))
 
-(defn recall [mem pos]
+(defn insert-word [mem pos w]
+  (mem/insert mem pos (word/as-vector w) word/size))
+
+(defn recall-word [mem pos]
   (let [[mem w] (mem/recall mem pos word/size)]
     [mem (word/->Word w)]))
-
-(defn recall-bytes [mem pos n]
-  (-> (mem/recall mem pos n)
-      (update 1 b/to-byte-array n)))

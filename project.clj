@@ -4,5 +4,6 @@
   :scm          {:name "git" :url "https://github.com/nervous-systems/sputter"}
   :dependencies [[org.clojure/clojure             "1.9.0-alpha16"]
                  [pandect                         "0.6.0"]
-                 [org.bouncycastle/bcprov-jdk15on "1.54"]]
+                 [org.bouncycastle/bcprov-jdk15on "1.54"]
+                 [org.clojure/core.rrb-vector     "0.0.11"]]
   :profiles     {:dev {:dependencies [[cheshire "5.8.0"]]}})

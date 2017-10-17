@@ -8,11 +8,15 @@
 (def max-value (b/mask (* 8 size)))
 
 (defprotocol VMWord
-  (add [word x] [word x m]
+  (add
+    [word x]
+    [word x m]
     "`word` + `x` [% `m`]")
   (sub [word x]
     "`word` - `x`")
-  (mul [word x] [word x m]
+  (mul
+    [word x]
+    [word x m]
     "`word` * `x` [% `m`]")
   (mod [word x]
     "`word` % `x`")
@@ -20,16 +24,13 @@
     "`word` / `x`")
   (or [word x]
     "`word` | `x`")
-  (join [word other n]
-    "Replace `n` right-most _bytes_ in `word` with `n` left-most
-     bytes from `other`, returning `word`.")
-  (insert [word pos b]
-    "Insert single-byte word `b` at `pos` in `word`.
-     A `pos` of zero points to the left-most byte.")
   (zero? [word])
+  (as-vector [word]
+    "Return a fixed length, zero-padded byte vector representation of
+     `word`'s underlying bytes.")
   (as-biginteger [word]
-    "Return a [[java.math.BigInteger]] representation of this
-    word's data."))
+    "Return a [[java.math.BigInteger]] representation of `word`'s
+     underlying bytes."))
 
 (defn- truncate [word]
   (b/and word max-value))
@@ -50,18 +51,10 @@
     (-> word (b/mod x) truncate))
   (or [word x]
     (-> word (b/or x) truncate))
-  (join [word other n]
-    (b/or (truncate (b/<< word (* 8 n)))
-          (b/>> other (* 8 (- size n)))))
   (zero? [word]
     (clojure.core/zero? word))
-  (insert [word pos b]
-    (let [prefix (b/>>   word (* 8 (- size pos 1)))
-          suffix (b/mask word (* 8 (- size pos 1)))]
-      (-> prefix
-          (b/or (b/mask b 0xFF))
-          (b/<< (* 8 (- size pos 1)))
-          (b/or suffix))))
+  (as-vector [word]
+    (apply vector-of :byte (b/to-byte-array word size)))
   (as-biginteger [word]
     word))
 
@@ -72,6 +65,7 @@
     (word?   x) x
     (number? x) (biginteger x)
     (string? x) (BigInteger. 1 (util/hex->bytes x))
+    (coll?   x) (BigInteger. 1 (byte-array x))
     :else       (BigInteger. 1 x)))
 
 (def one  (->Word 1))

@@ -78,7 +78,7 @@
 (let [zero (biginteger 0)]
   (defn- assert-return [test exp state]
     (let [exp (hex->biginteger (or exp "0x"))
-          act (:sputter/return state word/zero)]
+          act (word/->Word (:sputter/return state []))]
       (is (= exp act)
           (str test ": Return value mismatch. " exp " != " act)))))
 
