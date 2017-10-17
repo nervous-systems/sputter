@@ -5,7 +5,7 @@
             [sputter.util.biginteger :as b]))
 
 (defn store-byte [mem pos b]
-  (let [slot    (quot pos word/size)
+  (let [slot    (* word/size (quot pos word/size))
         [mem w] (mem/recall mem slot word/size)
         new-w   (word/insert (word/->Word w) (rem pos word/size) b)]
     (mem/store mem slot new-w)))
