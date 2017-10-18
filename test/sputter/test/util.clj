@@ -59,7 +59,7 @@
   (util/for-map [[addr m] addr->m]
     (word/->Word addr) (->storage-map (:storage m))))
 
-(defn- map->storage [m]
+(defn- map->Storage [m]
   (storage.stub/->Storage (->storage-maps m)))
 
 (defn- test->state [t]
@@ -68,7 +68,7 @@
      {:program (vm/disassemble (:code exec))
       :gas     (hex->biginteger (:gas exec))
       :message {:recipient (word/->Word (:address exec))}
-      :storage (map->storage (:pre t))})))
+      :storage (map->Storage (:pre t))})))
 
 (defn- assert-gas [test exp state]
   (when-let [exp (some-> exp hex->biginteger)]
@@ -78,7 +78,7 @@
 (let [zero (biginteger 0)]
   (defn- assert-return [test exp state]
     (let [exp (hex->biginteger (or exp "0x"))
-          act (:sputter/return state word/zero)]
+          act (word/->Word (:sputter/return state []))]
       (is (= exp act)
           (str test ": Return value mismatch. " exp " != " act)))))
 
@@ -99,8 +99,8 @@
   (let [state (test->state test)
         post  (vm/execute state)]
     (assert-error   test-name test post)
-    (assert-gas     test-name (:gas  test) post)
-    (assert-storage test-name (map->storage (:post test)) post)
+    (assert-gas     test-name (:gas test) post)
+    (assert-storage test-name (map->Storage (:post test)) post)
     (assert-return  test-name (:out test) post)))
 
 (defn run-vm-tests [re]

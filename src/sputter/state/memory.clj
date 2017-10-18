@@ -1,51 +1,41 @@
 (ns sputter.state.memory
   (:require [sputter.word            :as word]
-            [sputter.util.biginteger :as b]))
+            [clojure.core.rrb-vector :as rrb]))
 
 (defprotocol VMMemory
-  (remember [mem pos word]
-    "Store `word` starting at byte position `pos` in `mem`.
+  "Ephemeral byte-addressed data store."
+  (insert [mem dest-byte byte-vec n]
+    "Copy `n` right-most bytes from `byte-vec` to position `dest-byte` in `mem`.
      Returns `mem`.")
-  (recall [mem pos]
-    "Retrieve the word starting at byte position `pos` in `mem`.
+  (recall [mem from-byte n-bytes]
+    "Read `n-bytes` from `mem`, starting at `from-byte`, extending if necessary.
+     Returns vector of `[mem byte-vec]`")
+  (words [mem]
+    "Return the number of words in `mem`"))
 
-     Returns a vector of `[mem word]`.")
-  (remembered [mem]
-    "Return the number of words in `mem`, or the number of words
-     implied by out-of-bounds accesses of `mem`, whichever is greater."))
+(defn- extend* [table byte-pos]
+  (let [need (- byte-pos (count table))]
+    (cond-> table
+      (pos? need) (rrb/catvec (into (vector-of :byte)
+                                (repeat need 0))))))
 
-(defn- update* [mem pos f & args]
-  (apply
-   update-in mem [:table pos]
-   (fnil f word/zero) args))
-
-(defrecord Memory [table extent]
+(extend-type (type (rrb/vector))
   VMMemory
-  (remember [mem pos word]
-    (let [slot    (quot pos word/size)
-          in-slot (- word/size (rem pos word/size))]
+  (insert [mem dest-byte byte-vec n]
+    (let [data (rrb/subvec byte-vec (- (count byte-vec) n))
+          mem  (extend* mem (+ dest-byte n))]
       (-> mem
-          (update* slot word/join word in-slot)
-          (cond-> (< in-slot word/size)
-            (update* (inc slot) #(word/join word % in-slot))))))
-
-  (recall [mem pos]
-    (let [slot      (quot pos word/size)
-          from-next (rem pos word/size)
-          extent'   (cond-> slot (not (zero? from-next)) inc)]
-      [(update mem :extent max (inc extent'))
-       (word/join
-        (table slot word/zero)
-        (table (inc slot) word/zero)
-        from-next)]))
-
-  (remembered [mem]
-    (let [k (some-> table last key)]
-      (max extent (inc (or k -1))))))
+          (rrb/subvec 0    dest-byte)
+          (rrb/catvec data (rrb/subvec mem (+ dest-byte n))))))
+  (recall [mem from-byte n-bytes]
+    (let [mem (extend* mem (+ from-byte n-bytes))]
+      [mem (rrb/subvec mem from-byte (+ from-byte n-bytes))]))
+  (words [mem]
+    (int (Math/ceil (/ (count mem) word/size)))))
 
 (def memory? (partial satisfies? VMMemory))
 
-(defn ->Memory [x & [extent]]
+(defn ->Memory [x]
   (cond
     (memory? x) x
-    (map?    x) (Memory. (into (sorted-map) x) (or extent 0))))
+    (coll?   x) (into (rrb/vector-of :byte) x)))

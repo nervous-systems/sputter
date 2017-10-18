@@ -18,7 +18,7 @@
 (defmethod operate ::no-op [state op]
   state)
 
-(defn- register-op [mnemonic f]
+(defn- simple-op [mnemonic f]
   (defmethod operate mnemonic [state op]
     (state/push state (apply f (::popped op)))))
 
@@ -28,17 +28,17 @@
       word/zero
       (apply f args))))
 
-(register-op ::add word/add)
-(register-op ::sub word/sub)
-(register-op ::mul word/mul)
-(register-op ::div (zero-guard word/div))
-(register-op ::mod (zero-guard word/mod))
-(register-op ::or  word/or)
-(register-op ::gt  (fn [x y] (if (< y x) word/one word/zero)))
-(register-op ::lt  (fn [x y] (if (< x y) word/one word/zero)))
+(simple-op ::add word/add)
+(simple-op ::sub word/sub)
+(simple-op ::mul word/mul)
+(simple-op ::div (zero-guard word/div))
+(simple-op ::mod (zero-guard word/mod))
+(simple-op ::or  word/or)
+(simple-op ::gt  (fn [x y] (if (< y x) word/one word/zero)))
+(simple-op ::lt  (fn [x y] (if (< x y) word/one word/zero)))
 
-(register-op ::addmod (zero-guard word/add))
-(register-op ::mulmod (zero-guard word/mul))
+(simple-op ::addmod (zero-guard word/add))
+(simple-op ::mulmod (zero-guard word/mul))
 
 (defmethod operate ::dup [state op]
   (-> (reduce state/push state (::popped op))
@@ -46,17 +46,21 @@
 
 (defmethod operate ::mload [state op]
   (let [[pos]        (::popped op)
-        [state word] (mem/recall state pos)]
+        [state word] (util.mem/recall-word state pos)]
     (state/push state word)))
 
 (defmethod operate ::mstore [state op]
-  (let [remember (case (::variant op)
-                   8   util.mem/remember-byte
-                   nil mem/remember)]
-    (apply remember state (::popped op))))
+  (let [store (case (::variant op)
+                8   util.mem/insert-byte
+                nil util.mem/insert-word)]
+    (apply store state (::popped op))))
+
+(defmethod operate ::msize [state op]
+  (let [n-bytes (* (mem/words state) word/size)]
+    (state/push state (word/->Word n-bytes))))
 
 (defmethod operate ::return [state op]
-  (let [[state i] (apply util.mem/recall-biginteger state (::popped op))]
+  (let [[state i] (apply mem/recall state (::popped op))]
     (assoc state :sputter/return i)))
 
 (defmethod operate ::swap [state op]
