@@ -4,6 +4,7 @@ Immutable Ethereum Virtual Machine (EVM) implementation.
 
 ## Supporting Documentation
  - [Implementing the Ethereum Virtual Machine (Part I)](https://nervous.io/clojure/crypto/2017/09/12/clojure-evm)
+ - [Implementing the Ethereum Virtual Machine (Part II)](https://nervous.io/clojure/crypto/2017/10/18/clojure-evm-ii)
 
 ## Helpful Resources
  - [Awesome Ethereum Virtual Machine](https://github.com/pirapira/awesome-ethereum-virtual-machine)

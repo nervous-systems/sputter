@@ -48,13 +48,13 @@
   (->> (op-variants 0x60 0x80 :push {:sputter.op/stack-pop 0})
        (map-values
         (fn [op]
-          (assoc op ::sputter.op/width (inc (::sputter.op/variant op)))))))
+          (assoc op :sputter.op/width (inc (:sputter.op/variant op)))))))
 
 (def dups (op-variants 0x80 0x90 :dup))
 
 (def swaps
   (->> (op-variants 0x90 0xa0 :swap)
-       (map-values #(update % ::sputter.op/stack-pop inc))))
+       (map-values #(update % :sputter.op/stack-pop inc))))
 
 (def ops
   (merge
