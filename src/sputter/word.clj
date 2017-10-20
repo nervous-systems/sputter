@@ -5,7 +5,7 @@
   (:refer-clojure :exclude [zero? or mod]))
 
 (def size      32)
-(def max-value (b/mask (* 8 size)))
+(def max-value (b/mask (biginteger (* 8 size))))
 
 (defprotocol VMWord
   (add

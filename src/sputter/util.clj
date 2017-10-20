@@ -8,7 +8,7 @@
   (DatatypeConverter/parseHexBinary (str/replace s "0x" "")))
 
 (defn- print-hex [bs]
-  (let [bs (cond (instance? BigInteger bs) (.toByteArray bs)
+  (let [bs (cond (instance? BigInteger bs) (.toByteArray ^BigInteger bs)
                  (number? bs)              (.toByteArray (biginteger bs))
                  :else                     bs)]
     (-> (DatatypeConverter/printHexBinary bs)
@@ -24,7 +24,7 @@
     (pad (apply str strings) opts)))
 
 (defn byte-slice [bytes i len]
-  (Arrays/copyOfRange bytes (long i) (long (+ i len))))
+  (Arrays/copyOfRange ^bytes bytes (long i) (long (+ i len))))
 
 (defn map-values [f m]
   (into {}

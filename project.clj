@@ -6,4 +6,5 @@
                  [pandect                         "0.6.0"]
                  [org.bouncycastle/bcprov-jdk15on "1.54"]
                  [org.clojure/core.rrb-vector     "0.0.11"]]
-  :profiles     {:dev {:dependencies [[cheshire "5.8.0"]]}})
+  :profiles     {:dev {:dependencies [[cheshire               "5.8.0"]
+                                      [org.clojure/test.check "0.10.0-alpha2"]]}})
