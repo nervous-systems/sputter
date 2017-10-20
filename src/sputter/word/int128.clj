@@ -43,36 +43,21 @@
       (<  ps  64) (Int128. (>>> a   ps) (+ (<< a (- 64 ps)) (>>> b ps)))
       (<  ps 128) (Int128. 0 (>>> a (- ps 64)))))
   (mul [_ y]
-    (let [x-a-l (>>> a 32)       x-a-r (int-mask a)
-          x-b-l (>>> b 32)       x-b-r (int-mask b)
-
-          y-a-l (>>> (:a y) 32)  y-a-r (int-mask (:a y))
-          y-b-l (>>> (:b y) 32)  y-b-r (int-mask (:b y))
-
-          p-0-3 (* x-b-r y-b-r)  p-1-3 (* x-b-l y-b-r)  p-2-3 (* x-a-r y-b-r)
-          p-3-3 (* x-a-l y-b-r)  p-0-2 (* x-b-r y-b-l)  p-1-2 (* x-b-l y-b-l)
-          p-2-2 (* x-a-r y-b-l)  p-3-2 (* x-a-l y-b-l)  p-0-1 (* x-b-r y-a-r)
-          p-1-1 (* x-b-l y-a-r)  p-2-1 (* x-a-r y-a-r)  p-3-1 (* x-a-l y-a-r)
-
-          p-0-0 (* x-b-r y-a-l)  p-1-0 (* x-b-l y-a-l)  p-2-0 (* x-a-r y-a-l)
-          p-3-0 (* x-a-l y-a-l)
-
-          i4    (int-mask p-0-3)
-
-          i3    (+ (int-mask p-0-2) (>>> p-0-3 32)
-                   (int-mask p-1-3) (>>> i4 32))
-
-          i2    (+ (int-mask p-0-1) (>>> p-0-2 32)
-                   (int-mask p-1-2) (>>> p-1-3 32)
-                   (int-mask p-2-3) (>>> i3    32))
-
-          i1    (+ (int-mask p-0-0) (>>> p-0-1 32)
-                   (int-mask p-1-1) (>>> p-1-2 32)
-                   (int-mask p-2-2) (>>> p-2-3 32)
-                   (int-mask p-3-3) (>>> i2    32))]
-
-      (Int128. (bit-or (<< (int-mask i1) 32) (int-mask i2))
-               (bit-or (<< (int-mask i3) 32) (int-mask i4)))))
+    (a/with-products *
+      [(>>> a      32) (int-mask a)      (>>> b 32)      (int-mask b)]
+      [(>>> (:a y) 32) (int-mask (:a y)) (>>> (:b y) 32) (int-mask (:b y))]
+      (let [i4 (int-mask %p-0-3)
+            i3 (+ (int-mask %p-0-2) (>>> %p-0-3 32)
+                  (int-mask %p-1-3) (>>>    i4 32))
+            i2 (+ (int-mask %p-0-1) (>>> %p-0-2 32)
+                  (int-mask %p-1-2) (>>> %p-1-3 32)
+                  (int-mask %p-2-3) (>>> i3    32))
+            i1 (+ (int-mask %p-0-0) (>>> %p-0-1 32)
+                  (int-mask %p-1-1) (>>> %p-1-2 32)
+                  (int-mask %p-2-2) (>>> %p-2-3 32)
+                  (int-mask %p-3-3) (>>> i2    32))]
+        (Int128. (bit-or (<< (int-mask i1) 32) (int-mask i2))
+                 (bit-or (<< (int-mask i3) 32) (int-mask i4))))))
   (add [_ y]
     (let [a' (+ a ^long (:a y))
           b' (+ b ^long (:b y))]

@@ -39,3 +39,11 @@
     (if (zero? v)
       i
       (recur (inc i) (>>> v 1)))))
+
+(defmacro with-products [op row1 row2 & body]
+  (let [bindings (for [y (range 3 -1 -1)
+                       x (range 3 -1 -1)
+                       :let [varn (symbol (str "%p-" (- 3 x) "-" y))]]
+                   (list varn (list op (get row1 x) (get row2 y))))]
+    `(let ~(reduce into [] bindings)
+       ~@body)))
