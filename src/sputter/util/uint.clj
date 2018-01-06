@@ -1,9 +1,12 @@
-(ns sputter.util.biginteger
-  (:import [java.math BigInteger])
-  (:refer-clojure :exclude [or and - + * / not mod]))
+(ns sputter.util.uint
+  (:import [io.nervous.juint UInt256])
+  (:refer-clojure :exclude [or and - + * / not mod zero?]))
 
-(def one  BigInteger/ONE)
-(def zero (biginteger 0))
+(def one  UInt256/ONE)
+(def zero UInt256/ZERO)
+
+(defmacro zero? [x]
+  `(.isZero ~x))
 
 (defmacro <<  [x y] `(.shiftLeft  ~x ~y))
 (defmacro >>  [x y] `(.shiftRight ~x ~y))
@@ -20,7 +23,7 @@
 (defmacro and [x & xs] (if (not-empty xs) `(.and      ~x (and ~@xs)) x))
 
 (defn mask
-  ([m] (-> one (<< m) (- one)))
+  ([m] (-> one (<< m) .dec))
   ([n m]
    (and n (mask m))))
 

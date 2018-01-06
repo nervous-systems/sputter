@@ -1,14 +1,16 @@
 (ns sputter.util
   (:require [clojure.string :as str])
   (:import [javax.xml.bind DatatypeConverter]
-           [java.math BigInteger]
-           [java.util Arrays]))
+           [java.math        BigInteger]
+           [io.nervous.juint UInt256]
+           [java.util        Arrays]))
 
 (defn hex->bytes [s]
   (DatatypeConverter/parseHexBinary (str/replace s "0x" "")))
 
 (defn- print-hex [bs]
   (let [bs (cond (instance? BigInteger bs) (.toByteArray bs)
+                 (instance? UInt256    bs) (.toByteArray bs)
                  (number? bs)              (.toByteArray (biginteger bs))
                  :else                     bs)]
     (-> (DatatypeConverter/printHexBinary bs)
