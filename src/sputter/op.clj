@@ -34,8 +34,8 @@
 (simple-op ::div (zero-guard word/div))
 (simple-op ::mod (zero-guard word/mod))
 (simple-op ::or  word/or)
-(simple-op ::gt  (fn [x y] (if (< y x) word/one word/zero)))
-(simple-op ::lt  (fn [x y] (if (< x y) word/one word/zero)))
+(simple-op ::gt  (fn [x y] (if (< 0 (.compareTo x y)) word/one word/zero)))
+(simple-op ::lt  (fn [x y] (if (< (.compareTo x y) 0) word/one word/zero)))
 
 (simple-op ::addmod (zero-guard word/add))
 (simple-op ::mulmod (zero-guard word/mul))

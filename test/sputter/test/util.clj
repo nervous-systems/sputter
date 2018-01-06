@@ -51,13 +51,18 @@
     (biginteger 0)
     (biginteger (util/hex->bytes s))))
 
+(defn- hex->word [s]
+  (if (or (not s) (= s "0x"))
+    word/zero
+    (word/->Word s)))
+
 (defn- ->storage-map [m]
   (util/for-map [[pos w] m]
-    (hex->biginteger pos) (word/->Word w)))
+    (hex->word pos) (hex->word w)))
 
 (defn- ->storage-maps [addr->m]
   (util/for-map [[addr m] addr->m]
-    (word/->Word addr) (->storage-map (:storage m))))
+    (hex->word addr) (->storage-map (:storage m))))
 
 (defn- map->Storage [m]
   (storage.stub/->Storage (->storage-maps m)))
@@ -77,7 +82,7 @@
 
 (let [zero (biginteger 0)]
   (defn- assert-return [test exp state]
-    (let [exp (hex->biginteger (or exp "0x"))
+    (let [exp (hex->word exp)
           act (word/->Word (:sputter/return state []))]
       (is (= exp act)
           (str test ": Return value mismatch. " exp " != " act)))))

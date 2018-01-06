@@ -1,11 +1,12 @@
 (ns sputter.word
-  (:require [sputter.util            :as util]
-            [sputter.util.biginteger :as b])
-  (:import [java.math BigInteger])
+  (:require [sputter.util      :as util]
+            [sputter.util.uint :as u]
+            [clojure.string    :as str])
+  (:import [io.nervous.juint UInt256])
   (:refer-clojure :exclude [zero? or mod]))
 
 (def size      32)
-(def max-value (b/mask (* 8 size)))
+(def max-value (u/mask (* 8 size)))
 
 (defprotocol VMWord
   (add
@@ -28,34 +29,27 @@
   (as-vector [word]
     "Return a fixed length, zero-padded byte vector representation of
      `word`'s underlying bytes.")
-  (as-biginteger [word]
-    "Return a [[java.math.BigInteger]] representation of `word`'s
-     underlying bytes."))
+  (as-uint [word]
+    "Return a [[UInt256]] representation of `word`." ))
 
-(defn- truncate [word]
-  (b/and word max-value))
-
-(extend-type BigInteger
+(extend-type UInt256
   VMWord
   (add
-    ([word x]   (-> word (b/+ x) truncate))
-    ([word x m] (-> word (b/+ x) (mod m))))
-  (sub [word x]
-    (-> word (b/- x) truncate))
+    ([word x]   (u/+ word x))
+    ([word x m] (.addmod word x m)))
+  (sub [word x] (u/- word x))
   (mul
-    ([word x]   (-> word (b/* x) truncate))
-    ([word x m] (-> word (b/* x) (mod m))))
-  (div [word x]
-    (-> word (b// x) truncate))
-  (mod [word x]
-    (-> word (b/mod x) truncate))
+    ([word x]   (u/* word x))
+    ([word x m] (.mulmod word x m)))
+  (div [word x] (u// word x))
+  (mod [word x] (u/mod word x))
   (or [word x]
-    (-> word (b/or x) truncate))
+    (u/or word x))
   (zero? [word]
-    (clojure.core/zero? word))
+    (u/zero? word))
   (as-vector [word]
-    (apply vector-of :byte (b/to-byte-array word size)))
-  (as-biginteger [word]
+    (apply vector-of :byte (u/to-byte-array word size)))
+  (as-uint [word]
     word))
 
 (def word? (partial satisfies? VMWord))
@@ -63,10 +57,12 @@
 (defn ->Word [x]
   (cond
     (word?   x) x
-    (number? x) (biginteger x)
-    (string? x) (BigInteger. 1 (util/hex->bytes x))
-    (coll?   x) (BigInteger. 1 (byte-array x))
-    :else       (BigInteger. 1 x)))
+    (number? x) (UInt256. (biginteger x))
+    (string? x) (UInt256. (cond-> x
+                            (str/starts-with? x "0x") (subs 2))
+                          16)
+    (coll?   x) (UInt256. (byte-array x))
+    :else       (UInt256. x)))
 
 (def one  (->Word 1))
 (def zero (->Word 0))
