@@ -1,14 +1,14 @@
 (ns sputter.test.util
-  (:require [sputter.util               :as util]
-            [sputter.state              :as state]
-            [sputter.state.storage      :as storage]
-            [sputter.state.storage.stub :as storage.stub]
-            [sputter.word               :as word]
-            [sputter.vm                 :as vm]
-            [cheshire.core              :as json]
-            [clojure.java.io            :as io]
-            [clojure.test               :as test :refer [is]]
-            [clojure.string             :as str]))
+  (:require [sputter.util         :as util]
+            [sputter.tx           :as tx]
+            [sputter.storage      :as storage]
+            [sputter.storage.stub :as storage.stub]
+            [sputter.word         :as word]
+            [sputter.vm           :as vm]
+            [cheshire.core        :as json]
+            [clojure.java.io      :as io]
+            [clojure.test         :as test :refer [is]]
+            [clojure.string       :as str]))
 
 (def ^:private test-path "externals/ethereum-tests/VMTests")
 
@@ -67,42 +67,42 @@
 (defn- map->Storage [m]
   (storage.stub/->Storage (->storage-maps m)))
 
-(defn- test->state [t]
+(defn- test->tx [t]
   (let [exec (:exec t)]
-    (state/map->State
+    (tx/map->Transaction
      {:program (vm/disassemble (:code exec))
       :gas     (hex->biginteger (:gas exec))
       :message {:recipient (word/->Word (:address exec))}
       :storage (map->Storage (:pre t))})))
 
-(defn- assert-gas [test exp state]
+(defn- assert-gas [test exp tx]
   (when-let [exp (some-> exp hex->biginteger)]
-    (is (= exp (:gas state))
-        (str test ": Gas value mismatch. " exp " != " (:gas state)))))
+    (is (= exp (:gas tx))
+        (str test ": Gas value mismatch. " exp " != " (:gas tx)))))
 
 (let [zero (biginteger 0)]
-  (defn- assert-return [test exp state]
+  (defn- assert-return [test exp tx]
     (let [exp (hex->word exp)
-          act (word/->Word (:sputter/return state []))]
+          act (word/->Word (:sputter/return tx []))]
       (is (= exp act)
           (str test ": Return value mismatch. " exp " != " act)))))
 
-(defn- assert-error [test exp state]
-  (if (:sputter/error state)
+(defn- assert-error [test exp tx]
+  (if (:sputter/error tx)
     (is (nil? (:gas exp))
-        (str test ": Wants gas, but got error " (:sputter/error state)))
+        (str test ": Wants gas, but got error " (:sputter/error tx)))
     (is (:gas exp) (str test ": No gas value?"))))
 
-(defn- assert-storage [test exp state]
+(defn- assert-storage [test exp tx]
   (doseq [[addr pos->w] exp]
-    (doseq [[pos w] pos->w :let [act-w (storage/retrieve state addr pos)]]
+    (doseq [[pos w] pos->w :let [act-w (storage/retrieve tx addr pos)]]
       (is (= w act-w)
           (str test ": Storage value mismatch for "
                addr ": " w " != " act-w)))))
 
 (defn- run-vm-test [test-name test]
-  (let [state (test->state test)
-        post  (vm/execute state)]
+  (let [tx (test->tx test)
+        post  (vm/execute tx)]
     (assert-error   test-name test post)
     (assert-gas     test-name (:gas test) post)
     (assert-storage test-name (map->Storage (:post test)) post)

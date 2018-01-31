@@ -1,7 +1,7 @@
-(ns sputter.state.storage.stub
-  (:require [sputter.state.storage :as storage]
-            [sputter.word          :as word]
-            [sputter.util :refer [for-map]]))
+(ns sputter.storage.stub
+  (:require [sputter.storage :as storage]
+            [sputter.word    :as word]
+            [sputter.util    :refer [for-map]]))
 
 (extend-type (type {})
   storage/VMStorage

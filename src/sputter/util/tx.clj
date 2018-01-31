@@ -1,11 +1,11 @@
-(ns sputter.util.state)
+(ns sputter.util.tx)
 
-(defn guard [state f & args]
-  (if (:sputter/error state)
-    state
-    (apply f state args)))
+(defn guard [tx f & args]
+  (if (:sputter/error tx)
+    tx
+    (apply f tx args)))
 
-(defmacro state-> [x & forms]
+(defmacro tx-> [x & forms]
   (let [forms (for [f forms]
                 (if (seq? f)
                   `(guard ~@f)
