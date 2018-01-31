@@ -1,9 +1,9 @@
 (ns sputter.gas
-  (:require [sputter.gas.yellow    :as gas.yellow]
-            [sputter.word          :as word]
-            [sputter.state.memory  :as mem]
-            [sputter.state.storage :as storage]
-            [sputter.op            :as op]))
+  (:require [sputter.gas.yellow :as gas.yellow]
+            [sputter.word       :as word]
+            [sputter.tx.memory  :as mem]
+            [sputter.storage    :as storage]
+            [sputter.op         :as op]))
 
 (defmulti ^:private op->variable-cost
   (fn [op constants] (::op/mnemonic op)))
@@ -31,14 +31,14 @@
 (defmethod op->variable-cost ::mem-extend [op constants]
   (let [width      (mem-op->byte-width op)
         [addr]     (::op/popped op)
-        prev-words (-> op :sputter/state mem/words)
+        prev-words (-> op :sputter/tx mem/words)
         curr-words (int (Math/ceil (/ (+ addr width) word/size)))]
     (max 0 (- (mem-fee curr-words (:per-memory-word constants))
               (mem-fee prev-words (:per-memory-word constants))))))
 
 (defmethod op->variable-cost ::op/sstore [op constants]
   (let [[pos cur] (::op/popped op)
-        prev      (-> op :sputter/state (storage/retrieve :recipient pos))]
+        prev      (-> op :sputter/tx (storage/retrieve :recipient pos))]
     (cond
       (and (word/zero? prev)
            (not (word/zero? cur)))  (:sset constants)
@@ -49,8 +49,8 @@
 (defprotocol GasModel
   (fixed-cost [_ mnemonic]
     "Return the up-front cost of executing the op w/ the given `mnemonic`.")
-  (variable-cost [_ op state]
-    "Return the cost of executing `op` against `state`.
+  (variable-cost [_ op tx]
+    "Return the cost of executing `op` against `tx`.
 
     Does not include any fixed-cost component."))
 
@@ -58,9 +58,9 @@
   GasModel
   (fixed-cost [_ mnemonic]
     (by-op mnemonic))
-  (variable-cost [_ op state]
+  (variable-cost [_ op tx]
     (op->variable-cost
-     (assoc op :sputter/state state)
+     (assoc op :sputter/tx tx)
      constants)))
 
 (def yellow-paper

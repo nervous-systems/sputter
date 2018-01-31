@@ -1,4 +1,4 @@
-(ns sputter.state.storage)
+(ns sputter.storage)
 
 (defprotocol VMStorage
   "Word-addressed storage, keyed by Ethereum address."

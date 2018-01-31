@@ -2,25 +2,25 @@
   (:require [pandect.algo.sha3-256 :as sha]
             [sputter.op.table      :as op.table]
             [sputter.word          :as word]
-            [sputter.state.memory  :as mem]
+            [sputter.tx.memory     :as mem]
             [sputter.util.memory   :as util.mem]
-            [sputter.state         :as state]
-            [sputter.state.storage :as storage]))
+            [sputter.tx            :as tx]
+            [sputter.storage       :as storage]))
 
-(defmulti operate (fn [state op] (::mnemonic op)))
+(defmulti operate (fn [tx op] (::mnemonic op)))
 
-(defmethod operate :default [state op]
-  (assoc state :sputter/error :not-implemented))
+(defmethod operate :default [tx op]
+  (assoc tx :sputter/error :not-implemented))
 
 (derive ::jumpdest ::no-op)
 (derive ::pop      ::no-op)
 
-(defmethod operate ::no-op [state op]
-  state)
+(defmethod operate ::no-op [tx op]
+  tx)
 
 (defn- simple-op [mnemonic f]
-  (defmethod operate mnemonic [state op]
-    (state/push state (apply f (::popped op)))))
+  (defmethod operate mnemonic [tx op]
+    (tx/push tx (apply f (::popped op)))))
 
 (defn- zero-guard [f]
   (fn [& args]
@@ -40,56 +40,56 @@
 (simple-op ::addmod (zero-guard word/add))
 (simple-op ::mulmod (zero-guard word/mul))
 
-(defmethod operate ::dup [state op]
-  (-> (reduce state/push state (::popped op))
-      (state/push (last (::popped op)))))
+(defmethod operate ::dup [tx op]
+  (-> (reduce tx/push tx (::popped op))
+      (tx/push (last (::popped op)))))
 
-(defmethod operate ::mload [state op]
+(defmethod operate ::mload [tx op]
   (let [[pos]        (::popped op)
-        [state word] (util.mem/recall-word state pos)]
-    (state/push state word)))
+        [tx word] (util.mem/recall-word tx pos)]
+    (tx/push tx word)))
 
-(defmethod operate ::mstore [state op]
+(defmethod operate ::mstore [tx op]
   (let [store (case (::variant op)
                 8   util.mem/insert-byte
                 nil util.mem/insert-word)]
-    (apply store state (::popped op))))
+    (apply store tx (::popped op))))
 
-(defmethod operate ::msize [state op]
-  (let [n-bytes (* (mem/words state) word/size)]
-    (state/push state (word/->Word n-bytes))))
+(defmethod operate ::msize [tx op]
+  (let [n-bytes (* (mem/words tx) word/size)]
+    (tx/push tx (word/->Word n-bytes))))
 
-(defmethod operate ::return [state op]
-  (let [[state i] (apply mem/recall state (::popped op))]
-    (assoc state :sputter/return i)))
+(defmethod operate ::return [tx op]
+  (let [[tx i] (apply mem/recall tx (::popped op))]
+    (assoc tx :sputter/return i)))
 
-(defmethod operate ::swap [state op]
+(defmethod operate ::swap [tx op]
   (let [[h & t] (::popped op)
         t       (reverse t)]
-    (as-> state s
-      (state/push s h)
-      (reduce state/push s (rest t))
-      (state/push s (first t)))))
+    (as-> tx s
+      (tx/push s h)
+      (reduce tx/push s (rest t))
+      (tx/push s (first t)))))
 
-(defmethod operate ::sstore [state op]
-  (apply storage/store state :recipient (::popped op)))
+(defmethod operate ::sstore [tx op]
+  (apply storage/store tx :recipient (::popped op)))
 
-(defmethod operate ::sload [state op]
+(defmethod operate ::sload [tx op]
   (let [[pos] (::popped op)]
-    (storage/retrieve state :recipient pos)))
+    (storage/retrieve tx :recipient pos)))
 
-(defmethod operate ::push [state op]
-  (state/push state (::data op)))
+(defmethod operate ::push [tx op]
+  (tx/push tx (::data op)))
 
-(defn- jump* [state target]
-  (let [state' (state/position state target)]
-    (if (not= (::mnemonic (state/instruction state')) ::jumpdest)
-      (assoc state :sputter/error :invalid-jump)
-      (assoc state' :sputter/advance? false))))
+(defn- jump* [tx target]
+  (let [tx' (tx/position tx target)]
+    (if (not= (::mnemonic (tx/instruction tx')) ::jumpdest)
+      (assoc tx :sputter/error :invalid-jump)
+      (assoc tx' :sputter/advance? false))))
 
-(defmethod operate ::jump [state op]
-  (->> op ::popped first (jump* state)))
+(defmethod operate ::jump [tx op]
+  (->> op ::popped first (jump* tx)))
 
-(defmethod operate ::jumpi [state op]
+(defmethod operate ::jumpi [tx op]
   (let [[pos v] (::popped op)]
-    (cond-> state (not (word/zero? v)) (jump* pos))))
+    (cond-> tx (not (word/zero? v)) (jump* pos))))

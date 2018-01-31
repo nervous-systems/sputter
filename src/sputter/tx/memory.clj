@@ -1,4 +1,4 @@
-(ns sputter.state.memory
+(ns sputter.tx.memory
   (:require [sputter.word            :as word]
             [clojure.core.rrb-vector :as rrb]))
 

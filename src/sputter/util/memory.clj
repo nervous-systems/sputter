@@ -1,7 +1,7 @@
 (ns sputter.util.memory
   "Support functionality for [[mem/VMMemory]]."
-  (:require [sputter.state.memory :as mem]
-            [sputter.word         :as word]))
+  (:require [sputter.tx.memory :as mem]
+            [sputter.word      :as word]))
 
 (defn insert-byte [mem pos w]
   (let [b (-> w word/as-uint .byteValue)]
