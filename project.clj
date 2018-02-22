@@ -6,5 +6,6 @@
                  [io.nervous/juint                "0.1.0"]
                  [pandect                         "0.6.0"]
                  [org.bouncycastle/bcprov-jdk15on "1.54"]
-                 [org.clojure/core.rrb-vector     "0.0.11"]]
+                 [org.clojure/core.rrb-vector     "0.0.11"]
+                 [org.iq80.leveldb/leveldb        "0.10"]]
   :profiles     {:dev {:dependencies [[cheshire "5.8.0"]]}})
