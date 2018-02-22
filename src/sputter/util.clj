@@ -1,12 +1,17 @@
 (ns sputter.util
-  (:require [clojure.string :as str])
+  (:require [clojure.string          :as str]
+            [pandect.algo.keccak-256 :as kk-256])
   (:import [javax.xml.bind DatatypeConverter]
            [java.math        BigInteger]
            [io.nervous.juint UInt256]
            [java.util        Arrays]))
 
+(def sha3       kk-256/keccak-256)
+(def sha3-bytes kk-256/keccak-256-bytes)
+
 (defn hex->bytes [s]
-  (DatatypeConverter/parseHexBinary (str/replace s "0x" "")))
+  (-> (str/replace s "0x" "")
+      DatatypeConverter/parseHexBinary))
 
 (defn- print-hex [bs]
   (let [bs (cond (instance? BigInteger bs) (.toByteArray bs)
@@ -43,5 +48,17 @@
           (reset! m-atom# (assoc! ~m-sym ~key-expr ~val-expr))))
       (persistent! @m-atom#))))
 
+(defn map-vals [f m]
+  (for-map [[k v] m]
+    k (f v)))
+
 (defn error? [v]
   (and (keyword? v) (= (namespace v) "sputter.error")))
+
+(defn- longest-prefix [a b]
+  (take-while identity (map (fn lp [aa bb] (when (= aa bb) aa)) a b)))
+
+(defn split-prefix [a b]
+  (let [prefix (longest-prefix a b)
+        n      (count prefix)]
+    [(not-empty prefix) (drop n a) (drop n b)]))
