@@ -55,6 +55,3 @@
              hash-k (util/sha3-bytes rlp)]
          [(swap! writes assoc hash-k rlp) hash-k root]))
      (partial walk-realized (partial flatten-one writes)))))
-
-(defn hash-node [node & [root?]]
-  (first (encode-node node root?)))
