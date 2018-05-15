@@ -60,19 +60,3 @@
   (merge
    pushes dups swaps simple-ops
    {0x53 (->simple-op :sputter.op/mstore 2 {:sputter.op/variant 8})}))
-
-;; (def ops
-;;   {0x30 :sputter.op/address      0x31 :sputter.op/balance      0x32 :sputter.op/origin
-;;    0x33 :sputter.op/caller       0x34 :sputter.op/callvalue
-;;    0x36 :sputter.op/calldatasize 0x37 :sputter.op/calldatacopy 0x38 :sputter.op/codesize
-;;    0x39 :sputter.op/codecopy     0x3a :sputter.op/gasprice
-
-;;    0x40 :sputter.op/prevhash 0x41 :sputter.op/coinbase   0x42 :sputter.op/timestamp
-;;    0x43 :sputter.op/number   0x44 :sputter.op/difficulty 0x45 :sputter.op/gaslimit
-
-;;    0x50 :sputter.op/pop         0x52 :sputter.op/swap  0x53 :sputter.op/mload
-;;    0x54 :sputter.op/mstore 0x55 :sputter.op/mstore8 0x56 :sputter.op/sload 0x57 :sputter.op/sstore
-;;    0x58 :sputter.op/jump   0x59 :sputter.op/jumpi   0x5a :sputter.op/pc    0x5b :sputter.op/msize
-;;    0x5c :sputter.op/gas
-
-;;    0xf0 :sputter.op/create 0xf1 :sputter.op/call 0xf2 :sputter.op/return 0xff :sputter.op/suicide})

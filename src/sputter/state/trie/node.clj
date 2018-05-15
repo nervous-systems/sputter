@@ -44,7 +44,7 @@
     (when nibble
       [(branches (int nibble)) rest-k]))
   (walk [this outer inner]
-    (outer (update this :branches (partial util/map-vals inner)))))
+    (outer (update this :branches (partial util/map-values inner)))))
 
 (defn ->Branch
   ([]         (->Branch {}))

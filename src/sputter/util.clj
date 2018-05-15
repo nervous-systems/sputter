@@ -48,10 +48,6 @@
           (reset! m-atom# (assoc! ~m-sym ~key-expr ~val-expr))))
       (persistent! @m-atom#))))
 
-(defn map-vals [f m]
-  (for-map [[k v] m]
-    k (f v)))
-
 (defn error? [v]
   (and (keyword? v) (= (namespace v) "sputter.error")))
 
