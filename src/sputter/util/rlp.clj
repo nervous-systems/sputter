@@ -1,4 +1,5 @@
 (ns sputter.util.rlp
+  (:require [sputter.util :refer [byte-count long->bytes bytes->long]])
   (:import [java.io ByteArrayOutputStream]
            [java.util Arrays])
   (:refer-clojure :exclude [vector?]))
@@ -17,19 +18,6 @@
 (defn- compact? [bs]
   (and (= (count bs) 1)
        (< (bit-and (first bs) 0xff) str-short)))
-
-(defn- byte-count [l]
-  (int (Math/ceil (/ (- 64 (Long/numberOfLeadingZeros l)) 8))))
-
-(defn- long->bytes [l]
-  (let [x   (byte-count l)
-        out (byte-array x)]
-    (loop [x (dec x), l l]
-      (if (neg? x)
-        out
-        (do
-          (aset out x (unchecked-byte (bit-and l 0xff)))
-          (recur (dec x) (bit-shift-right l 8)))))))
 
 (defn- write-long [stream l]
   (let [bs (long->bytes l)]
@@ -78,15 +66,6 @@
   (let [stream (ByteArrayOutputStream.)]
     (stream-encode x stream opts)
     (.toByteArray stream)))
-
-(defn- bytes->long [bs i n]
-  (loop [out 0, i i, n n]
-    (if (zero? n)
-      out
-      (recur (bit-or (bit-shift-left out 8)
-                     (bit-and 0xff (aget bs i)))
-             (inc i)
-             (dec n)))))
 
 (defn- read-wide-bounds [bs i width-width]
   (let [width (bytes->long bs (inc i) width-width)]
