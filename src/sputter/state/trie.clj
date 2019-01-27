@@ -15,11 +15,6 @@
   (-insert [trie k v])
   (commit  [trie]))
 
-(def last-root-key (.getBytes "sputter.state.trie/root" "UTF-8"))
-
-(defn last-root [{store :store}]
-  (kv/retrieve store last-root-key))
-
 (defn- attach* [v node k & [opts]]
   (cond-> node (:terminal? opts) (node/attach k v)))
 
@@ -38,11 +33,10 @@
     (let [[writes hash root] (util/flatten root)]
       (if (empty? writes)
         this
-        (let [writes (assoc writes last-root-key hash)]
-          (assoc this
-            :root  root
-            :store (kv/insert-batch store writes)
-            :hash  hash)))))
+        (assoc this
+          :root  root
+          :store (kv/insert-batch store writes)
+          :hash  hash))))
   (-search [this k]
     (search-below store root k)))
 
